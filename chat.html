@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Chat - XENZDOCHAT</title>
+    <title>XENZDOCHAT - Ultimate Version</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -38,21 +38,9 @@
             z-index: 10;
         }
 
-        .menu-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 4px;
-        }
+        .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px; }
 
-        .profile-target {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-        }
+        .profile-target { display: flex; align-items: center; gap: 12px; flex: 1; }
 
         .target-avatar {
             width: 40px;
@@ -92,22 +80,8 @@
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .my-avatar-wrapper {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
-        }
-
-        .my-avatar-edit {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #2563eb;
-            transition: 0.3s;
-        }
-
-        .my-avatar-edit:hover { opacity: 0.8; }
+        .my-avatar-wrapper { position: relative; display: inline-block; cursor: pointer; }
+        .my-avatar-edit { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb; }
 
         .search-container { padding: 15px; }
         .search-box {
@@ -147,8 +121,12 @@
         .me .bubble { background: #2563eb; border-bottom-right-radius: 4px; color: white; }
         .other .bubble { background: #1e293b; border-bottom-left-radius: 4px; color: #e2e8f0; }
 
-        .meta { font-size: 10px; margin-top: 4px; opacity: 0.6; display: flex; gap: 4px; }
+        .meta { font-size: 10px; margin-top: 4px; opacity: 0.7; display: flex; align-items: center; gap: 4px; }
         .me .meta { justify-content: flex-end; }
+
+        .ticks { font-size: 12px; font-weight: bold; }
+        .ticks.read { color: #38bdf8; }
+        .ticks.sent { color: #94a3b8; }
 
         /* INPUT AREA */
         .input-area {
@@ -192,19 +170,13 @@
 
         .history-list { flex: 1; overflow-y: auto; padding: 10px; }
         .history-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            margin-bottom: 4px;
-            transition: 0.2s;
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            border-radius: 12px; cursor: pointer; transition: 0.2s;
         }
         .history-item:hover { background: rgba(255,255,255,0.05); }
 
         #ppInput { display: none; }
-        audio { height: 35px; width: 200px; }
+        audio { height: 35px; width: 200px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -224,7 +196,7 @@
             <input type="text" class="search-box" placeholder="Cari username..." onkeypress="handleSearch(event)">
         </div>
         
-        <div style="padding: 10px 20px; font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 1px;">HISTORY CHAT</div>
+        <div style="padding: 10px 20px; font-size: 11px; color: #64748b; font-weight: 600;">HISTORY CHAT</div>
         <div id="historyList" class="history-list"></div>
         
         <button onclick="toggleSidebar()" style="padding: 20px; background: none; border: none; color: #ef4444; font-weight: 600; cursor: pointer;">TUTUP MENU</button>
@@ -246,9 +218,7 @@
     <div class="input-area">
         <button id="micBtn" class="btn-icon" onclick="toggleRecording()" style="background:rgba(255,255,255,0.1)">🎤</button>
         <input id="message" placeholder="Ketik pesan..." autocomplete="off">
-        <button class="btn-icon" onclick="send()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
+        <button class="btn-icon" onclick="send()">➤</button>
     </div>
 </div>
 
@@ -274,7 +244,7 @@
     if(!currentUser) window.location.href = "login.html";
     document.getElementById("myUsernameLabel").innerText = "@" + currentUser;
 
-    // --- PROFILE & STATUS ---
+    // --- PROFILE & INITIAL LOAD ---
     async function loadMyProfile() {
         const res = await fetch(`${API}/user/${currentUser}`);
         const data = await res.json();
@@ -299,29 +269,19 @@
     }
 
     // --- NAVIGATION & SEARCH ---
-    function toggleSidebar() {
-        sidebar.classList.toggle("active");
-        if(sidebar.classList.contains("active")) renderHistory();
-    }
+    function toggleSidebar() { sidebar.classList.toggle("active"); if(sidebar.classList.contains("active")) renderHistory(); }
 
     function handleSearch(e) {
         if(e.key === "Enter") {
             const user = e.target.value.trim();
-            if(user && user !== currentUser) {
-                selectUser(user);
-                e.target.value = "";
-                toggleSidebar();
-            }
+            if(user && user !== currentUser) { selectUser(user); e.target.value = ""; toggleSidebar(); }
         }
     }
 
     function selectUser(u){
         currentTarget = u;
         localStorage.setItem("chat_target", u);
-        if(!chatHistory.includes(u)) {
-            chatHistory.unshift(u);
-            localStorage.setItem("chat_history", JSON.stringify(chatHistory));
-        }
+        if(!chatHistory.includes(u)) { chatHistory.unshift(u); localStorage.setItem("chat_history", JSON.stringify(chatHistory)); }
         updateTargetUI(u);
         loadHistory();
     }
@@ -331,11 +291,7 @@
         const res = await fetch(`${API}/user/${username}`);
         const data = await res.json();
         targetPP.src = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
-        
-        if(data?.lastSeen) {
-            targetStatus.innerText = "Terakhir dilihat " + new Date(data.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            targetStatus.classList.remove("online");
-        }
+        if(data?.lastSeen) targetStatus.innerText = "Terakhir dilihat " + new Date(data.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     }
 
     function renderHistory() {
@@ -349,29 +305,7 @@
         });
     }
 
-    // --- TYPING LOGIC ---
-    messageInput.addEventListener("input", () => {
-        socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: true });
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false });
-        }, 2000);
-    });
-
-    socket.on("display_typing", (data) => {
-        if(data.sender === currentTarget) {
-            if(data.isTyping) {
-                targetStatus.innerText = "sedang mengetik...";
-                targetStatus.classList.add("typing");
-            } else {
-                targetStatus.innerText = "Online";
-                targetStatus.classList.remove("typing");
-                targetStatus.classList.add("online");
-            }
-        }
-    });
-
-    // --- MESSAGING ---
+    // --- MESSAGING & STATUS ---
     socket.on("connect", () => socket.emit("join", currentUser));
 
     async function loadHistory(){
@@ -389,25 +323,32 @@
 
         const bubble = document.createElement("div");
         bubble.className = "bubble";
-
         if(data.type === "audio"){
             const audio = document.createElement("audio");
-            audio.src = data.message;
-            audio.controls = true;
+            audio.src = data.message; audio.controls = true;
             bubble.appendChild(audio);
-        } else {
-            bubble.innerText = data.message;
-        }
+        } else { bubble.innerText = data.message; }
 
-        const wrap = document.createElement("div");
-        wrap.appendChild(bubble);
         const meta = document.createElement("div");
         meta.className = "meta";
-        meta.innerText = new Date(data.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        wrap.appendChild(meta);
-        row.appendChild(wrap);
-        chat.appendChild(row);
+        const time = new Date(data.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        let ticks = "";
+        if(isMe) {
+            const tickClass = data.read ? "read" : "sent";
+            const tickIcon = data.read ? "✓✓" : "✓";
+            ticks = `<span class="ticks ${tickClass}" id="tick-${data._id}">${tickIcon}</span>`;
+        }
+
+        meta.innerHTML = `${time} ${ticks}`;
+        const wrap = document.createElement("div");
+        wrap.appendChild(bubble); wrap.appendChild(meta);
+        row.appendChild(wrap); chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
+
+        if(!isMe && !data.read && data._id) {
+            socket.emit("read_message", { messageId: data._id, sender: data.sender });
+        }
     }
 
     function send(){
@@ -417,6 +358,30 @@
         messageInput.value = "";
         socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false });
     }
+
+    // --- SOCKET LISTENERS ---
+    socket.on("receive_message", (data) => {
+        if(currentTarget === data.sender || currentTarget === data.receiver) createMessage(data);
+    });
+
+    socket.on("message_read", ({ messageId }) => {
+        const tickElement = document.getElementById(`tick-${messageId}`);
+        if(tickElement) { tickElement.innerText = "✓✓"; tickElement.className = "ticks read"; }
+    });
+
+    socket.on("display_typing", (data) => {
+        if(data.sender === currentTarget) {
+            targetStatus.innerText = data.isTyping ? "sedang mengetik..." : "Online";
+            targetStatus.className = data.isTyping ? "status typing" : "status online";
+        }
+    });
+
+    socket.on("user_status", (data) => {
+        if(data.username === currentTarget) {
+            targetStatus.innerText = data.status === "online" ? "Online" : "Terakhir dilihat " + new Date(data.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            targetStatus.className = data.status === "online" ? "status online" : "status";
+        }
+    });
 
     // --- VOICE NOTE ---
     let mediaRecorder; let audioChunks = []; let isRecording = false;
@@ -443,21 +408,11 @@
         }
     }
 
-    // --- SOCKET EVENTS ---
-    socket.on("receive_message", (data) => {
-        if(currentTarget === data.sender || currentTarget === data.receiver) createMessage(data);
-    });
-
-    socket.on("user_status", (data) => {
-        if(data.username === currentTarget) {
-            if(data.status === "online") {
-                targetStatus.innerText = "Online";
-                targetStatus.classList.add("online");
-            } else {
-                targetStatus.innerText = "Terakhir dilihat " + new Date(data.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                targetStatus.classList.remove("online");
-            }
-        }
+    // Typing listener
+    messageInput.addEventListener("input", () => {
+        socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: true });
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false }), 2000);
     });
 
     if(currentTarget) { updateTargetUI(currentTarget); loadHistory(); }
