@@ -99,7 +99,7 @@ button{
   flex:1;
   overflow-y:auto;
   padding:16px;
-  padding-bottom:120px;
+  padding-bottom:90px;
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -154,15 +154,215 @@ button{
 .read{color:#22c55e;}
 
 .input-area{
-  position:sticky;
+  position:fixed;
   bottom:0;
+  left:0;
+  right:0;
+  max-width:480px;
+  margin:auto;
   display:flex;
   gap:8px;
-  padding:12px;
-  background:rgba(2,6,23,0.97);
+  padding:10px;
+  padding-bottom:env(safe-area-inset-bottom);
+  background:rgba(2,6,23,0.98);
   border-top:1px solid rgba(255,255,255,0.05);
 }
+</style>
+</head>
+<body>
 
-.audio-player{
-  width:180px;
-  outli
+<div class="app">
+  <div class="header">
+    <div class="profile">
+      <img id="myPP" class="my-avatar">
+      <div class="username" id="userLabel"></div>
+      <input type="file" id="ppInput" accept="image/*" capture="user" style="display:none">
+    </div>
+    <div class="logout" onclick="logout()">Logout</div>
+  </div>
+
+  <div class="search-box">
+    <input id="searchUser" placeholder="Search username">
+    <button onclick="search()">Find</button>
+  </div>
+
+  <div id="results"></div>
+  <div class="chat-area" id="chat"></div>
+
+  <div class="input-area">
+    <input id="target" placeholder="Target username">
+    <input id="message" placeholder="Type message">
+    <button onclick="send()">Send</button>
+  </div>
+</div>
+
+<script>
+const API = "https://chat-backend-u4en.onrender.com";
+const socket = io(API);
+
+// FIX: AMBIL SEMUA ELEMENT DOM
+const userLabel = document.getElementById("userLabel");
+const myPP = document.getElementById("myPP");
+const ppInput = document.getElementById("ppInput");
+const chat = document.getElementById("chat");
+const target = document.getElementById("target");
+const message = document.getElementById("message");
+const searchUser = document.getElementById("searchUser");
+const results = document.getElementById("results");
+
+let currentUser = localStorage.getItem("chat_user");
+let currentTarget = localStorage.getItem("chat_target") || "";
+
+if(!currentUser){
+  window.location.href = "login.html";
+}
+
+userLabel.innerText = "@" + currentUser;
+
+// LOAD PP DARI SERVER (AGAR TERLIHAT ANTAR USER)
+async function loadMyPP(){
+  const res = await fetch(API + "/user/" + currentUser);
+  const data = await res.json();
+  myPP.src = data?.profilePicture || "https://ui-avatars.com/api/?name=" + currentUser;
+}
+loadMyPP();
+
+socket.on("connect", () => {
+  socket.emit("join", currentUser);
+});
+
+function logout(){
+  localStorage.removeItem("chat_user");
+  localStorage.removeItem("chat_target");
+  window.location.href = "login.html";
+}
+
+function formatWIB(date){
+  if(!date) return "";
+  return new Intl.DateTimeFormat("id-ID",{
+    timeZone:"Asia/Jakarta",
+    hour:"2-digit",
+    minute:"2-digit",
+    hour12:false
+  }).format(new Date(date)) + " WIB";
+}
+
+function createMessage(data){
+  const isMe = data.sender === currentUser;
+
+  const row = document.createElement("div");
+  row.className = "message-row " + (isMe ? "me" : "other");
+
+  const avatar = document.createElement("img");
+  avatar.className = "avatar";
+  avatar.src = data.senderPP || "https://ui-avatars.com/api/?name=" + data.sender;
+
+  const wrap = document.createElement("div");
+  wrap.className = "bubble-wrap";
+
+  const name = document.createElement("div");
+  name.className = "sender-name";
+  name.innerText = isMe ? "You" : "@" + data.sender;
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+
+  if(data.type === "audio"){
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = data.message;
+    bubble.appendChild(audio);
+  }else{
+    bubble.innerText = data.message;
+  }
+
+  wrap.appendChild(name);
+  wrap.appendChild(bubble);
+
+  if(isMe){
+    const meta = document.createElement("div");
+    meta.className = "meta sent";
+    meta.id = "msg-"+data._id;
+    meta.innerText = "✓ " + formatWIB(data.createdAt);
+    wrap.appendChild(meta);
+  }
+
+  if(!isMe) row.appendChild(avatar);
+  row.appendChild(wrap);
+  if(isMe) row.appendChild(avatar);
+
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+
+  if(!isMe){
+    socket.emit("read_message", data._id);
+  }
+}
+
+async function loadHistory(){
+  if(!currentTarget) return;
+  chat.innerHTML = "";
+
+  const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
+  const messages = await res.json();
+
+  messages.forEach(msg=>{
+    createMessage(msg);
+  });
+}
+
+async function search(){
+  if(!searchUser.value) return;
+  const res = await fetch(API + "/search/" + searchUser.value);
+  const users = await res.json();
+
+  results.innerHTML = users.map(u =>
+    `<p style="padding:8px;cursor:pointer" onclick="selectUser('${u.username}')">@${u.username}</p>`
+  ).join("");
+}
+
+function selectUser(u){
+  currentTarget = u;
+  target.value = u;
+  localStorage.setItem("chat_target", u);
+  loadHistory();
+}
+
+function send(){
+  if(!target.value || !message.value) return;
+
+  currentTarget = target.value;
+  localStorage.setItem("chat_target", currentTarget);
+
+  socket.emit("send_message", {
+    sender: currentUser,
+    receiver: currentTarget,
+    message: message.value,
+    type: "text"
+  });
+
+  message.value="";
+}
+
+socket.on("receive_message",(data)=>{
+  if(currentTarget === data.sender || currentTarget === data.receiver){
+    createMessage(data);
+  }
+});
+
+socket.on("message_read",(data)=>{
+  const el = document.getElementById("msg-"+data._id);
+  if(el){
+    el.className = "meta read";
+    el.innerText = "✓✓ Dibaca " + formatWIB(data.readAt);
+  }
+});
+
+if(currentTarget){
+  target.value = currentTarget;
+  loadHistory();
+}
+</script>
+
+</body>
+</html>
