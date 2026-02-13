@@ -89,7 +89,7 @@ button{
   flex:1;
   overflow-y:auto;
   padding:16px;
-  padding-bottom:100px;
+  padding-bottom:110px;
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -106,9 +106,13 @@ button{
   justify-content:flex-end;
 }
 
+.other{
+  justify-content:flex-start;
+}
+
 .avatar{
-  width:32px;
-  height:32px;
+  width:34px;
+  height:34px;
   border-radius:50%;
   object-fit:cover;
   background:#1e293b;
@@ -118,6 +122,12 @@ button{
   max-width:75%;
   display:flex;
   flex-direction:column;
+}
+
+.sender-name{
+  font-size:11px;
+  opacity:0.7;
+  margin-bottom:2px;
 }
 
 .bubble{
@@ -146,7 +156,7 @@ button{
   gap:8px;
   padding:12px;
   padding-bottom:calc(12px + env(safe-area-inset-bottom));
-  background:rgba(2,6,23,0.95);
+  background:rgba(2,6,23,0.97);
   border-top:1px solid rgba(255,255,255,0.05);
 }
 
@@ -183,7 +193,7 @@ const API = "https://chat-backend-u4en.onrender.com";
 const socket = io(API);
 
 let currentUser = localStorage.getItem("chat_user");
-let currentTarget = "";
+let currentTarget = localStorage.getItem("chat_target") || "";
 
 if(!currentUser){
   window.location.href = "login.html";
@@ -191,16 +201,23 @@ if(!currentUser){
 
 userLabel.innerText = "@" + currentUser;
 
+// AUTO RESTORE TARGET SETELAH REFRESH
+if(currentTarget){
+  target.value = currentTarget;
+  loadHistory();
+}
+
 socket.on("connect", () => {
   socket.emit("join", currentUser);
 });
 
 function logout(){
   localStorage.removeItem("chat_user");
+  localStorage.removeItem("chat_target");
   window.location.href = "login.html";
 }
 
-// FORMAT WIB AKURAT (ANTI SELISIH UTC)
+// WIB AKURAT
 function formatWIB(date){
   if(!date) return "";
   return new Intl.DateTimeFormat("id-ID",{
@@ -211,6 +228,11 @@ function formatWIB(date){
   }).format(new Date(date)) + " WIB";
 }
 
+// AVATAR GENERATOR (AGAR PP TERLIHAT ANTAR USER)
+function getAvatar(username){
+  return `https://ui-avatars.com/api/?name=${username}&background=2563eb&color=fff&size=128`;
+}
+
 function createMessage(data){
   const isMe = data.sender === currentUser;
 
@@ -219,15 +241,20 @@ function createMessage(data){
 
   const avatar = document.createElement("img");
   avatar.className = "avatar";
-  avatar.src = data.senderPP || "https://i.imgur.com/6VBx3io.png";
+  avatar.src = getAvatar(data.sender);
 
   const wrap = document.createElement("div");
   wrap.className = "bubble-wrap";
+
+  const name = document.createElement("div");
+  name.className = "sender-name";
+  name.innerText = isMe ? "You" : "@" + data.sender;
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   bubble.innerText = data.message;
 
+  wrap.appendChild(name);
   wrap.appendChild(bubble);
 
   if(isMe){
@@ -252,40 +279,49 @@ function createMessage(data){
   chat.scrollTop = chat.scrollHeight;
 }
 
-// LOAD HISTORY CHAT (INI YANG MEMBUAT TIDAK HILANG SAAT REFRESH)
+// FIX: HISTORY TIDAK HILANG SAAT REFRESH
 async function loadHistory(){
   if(!currentTarget) return;
 
   chat.innerHTML = "";
 
-  const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
-  const messages = await res.json();
+  try{
+    const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
+    const messages = await res.json();
 
-  messages.forEach(msg => {
-    createMessage(msg);
-  });
+    messages.forEach(msg=>{
+      createMessage(msg);
+    });
 
-  chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop = chat.scrollHeight;
+  }catch(e){
+    console.log("Load history error", e);
+  }
 }
 
 async function search(){
   const res = await fetch(API + "/search/" + searchUser.value);
   const users = await res.json();
   results.innerHTML = users.map(u =>
-    `<p onclick="selectUser('${u.username}')">${u.username}</p>`
+    `<p onclick="selectUser('${u.username}')">@${u.username}</p>`
   ).join("");
 }
 
 function selectUser(u){
-  target.value = u;
   currentTarget = u;
-  loadHistory(); // AUTO LOAD SAAT PILIH USER
+  target.value = u;
+
+  // SIMPAN TARGET AGAR TIDAK HILANG SAAT REFRESH
+  localStorage.setItem("chat_target", u);
+
+  loadHistory();
 }
 
 function send(){
   if(!target.value || !message.value) return;
 
   currentTarget = target.value;
+  localStorage.setItem("chat_target", currentTarget);
 
   socket.emit("send_message", {
     sender: currentUser,
@@ -297,10 +333,9 @@ function send(){
 }
 
 socket.on("receive_message",(data)=>{
-  if(data.sender===currentUser || data.receiver===currentUser){
-    if(currentTarget === data.sender || currentTarget === data.receiver){
-      createMessage(data);
-    }
+  // HANYA TAMPILKAN JIKA CHAT SEDANG DIBUKA
+  if(currentTarget === data.sender || currentTarget === data.receiver){
+    createMessage(data);
   }
 });
 
