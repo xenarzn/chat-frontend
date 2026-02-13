@@ -1,275 +1,453 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Chat - XENZDOCHAT</title>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>XENZDOCHAT - Messaging</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body {
+            background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%);
+            color: white;
+            height: 100dvh;
+            overflow: hidden;
+        }
 
-<style>
-/* ... (style sebelumnya tetap sama) ... */
-*{ margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
-body{ background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%); color:white; height:100dvh; overflow: hidden; }
-.app{ max-width:480px; margin:auto; height:100dvh; display:flex; flex-direction:column; background:rgba(2,6,23,0.9); backdrop-filter:blur(20px); position: relative; }
+        .app {
+            max-width: 480px;
+            margin: auto;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(20px);
+            position: relative;
+        }
 
-.header{ padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap: 12px; background:rgba(2,6,23,0.95); z-index: 10; }
-.menu-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
+        /* HEADER */
+        .header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(2, 6, 23, 0.95);
+            z-index: 10;
+        }
 
-.profile-target{ display:flex; align-items:center; gap:12px; flex: 1; cursor: pointer; }
-.target-avatar{ width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid #2563eb; background: #1e293b; transition: 0.3s; }
-.target-avatar:active { transform: scale(0.9); }
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
 
-.target-info .name{ font-weight:600; font-size:15px; display: block; }
-.target-info .status{ font-size:10px; color: #22c55e; }
+        .profile-target {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            cursor: pointer;
+        }
 
-/* Sidebar & History */
-.history-sidebar { position: absolute; top: 0; left: -100%; width: 80%; height: 100%; background: #0f172a; z-index: 100; transition: 0.3s ease; box-shadow: 10px 0 30px rgba(0,0,0,0.5); padding: 20px; }
-.history-sidebar.active { left: 0; }
-.my-profile-section { display: flex; flex-direction: column; align-items: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
-.my-avatar-edit { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb; cursor: pointer; margin-bottom: 10px; }
-.my-avatar-edit:hover { opacity: 0.8; }
+        .target-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #2563eb;
+            background: #1e293b;
+        }
 
-.history-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
-.history-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.03); cursor: pointer; }
+        .target-info .name { font-weight: 600; font-size: 15px; display: block; }
+        .target-info .status { font-size: 11px; color: #22c55e; }
 
-/* Chat & Input */
-.chat-area{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; padding-bottom: 80px; }
-.message-row{ display:flex; align-items:flex-end; gap:8px; }
-.me{ justify-content:flex-end; }
-.other{ justify-content:flex-start; }
-.bubble{ padding:10px 14px; border-radius:18px; font-size:14px; word-wrap:break-word; max-width: 280px; }
-.me .bubble{ background:#2563eb; border-bottom-right-radius: 4px;}
-.other .bubble{ background:#1e293b; border-bottom-left-radius: 4px;}
-.meta{ font-size:10px; margin-top:4px; opacity: 0.6; }
+        /* SIDEBAR HISTORY */
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 85%;
+            height: 100%;
+            background: #0f172a;
+            z-index: 100;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
 
-.input-area{ position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:auto; display:flex; align-items: center; gap:8px; padding:12px; padding-bottom:calc(12px + env(safe-area-inset-bottom)); background:rgba(15, 23, 42, 0.98); border-top:1px solid rgba(255,255,255,0.05); }
-input#message { flex: 1; padding: 12px 16px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); background: #1e293b; color: white; outline: none; }
-.btn-icon { background: #2563eb; width: 42px; height: 42px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.mic-btn { background: rgba(255,255,255,0.1); }
-.mic-recording { background: #ef4444 !important; }
-audio { width: 200px; }
+        .sidebar.active { left: 0; }
 
-/* Hidden file input */
-#ppInput { display: none; }
-</style>
+        .my-profile-card {
+            padding: 40px 20px;
+            text-align: center;
+            background: rgba(37, 99, 235, 0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .my-avatar-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+
+        .my-avatar-edit {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #2563eb;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .my-avatar-edit:hover { opacity: 0.8; filter: brightness(1.2); }
+
+        .edit-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #2563eb;
+            border-radius: 50%;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        /* CHAT AREA */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 90px;
+        }
+
+        .message-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 4px; }
+        .me { justify-content: flex-end; }
+        .other { justify-content: flex-start; }
+
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 14px;
+            word-wrap: break-word;
+            max-width: 280px;
+            line-height: 1.4;
+        }
+
+        .me .bubble { background: #2563eb; border-bottom-right-radius: 4px; color: white; }
+        .other .bubble { background: #1e293b; border-bottom-left-radius: 4px; color: #e2e8f0; }
+
+        .meta { font-size: 10px; margin-top: 4px; opacity: 0.6; display: flex; align-items: center; gap: 4px; }
+        .me .meta { justify-content: flex-end; }
+
+        /* INPUT AREA */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 480px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            background: rgba(15, 23, 42, 0.98);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        input#message {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #1e293b;
+            color: white;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .btn-icon {
+            background: #2563eb;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mic-btn { background: rgba(255,255,255,0.1); font-size: 20px; }
+        .mic-recording { background: #ef4444 !important; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 
+            0% { transform: scale(1); } 
+            50% { transform: scale(1.1); } 
+            100% { transform: scale(1); } 
+        }
+
+        .history-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .history-item:hover { background: rgba(255,255,255,0.05); }
+
+        #ppInput { display: none; }
+        audio { width: 210px; border-radius: 10px; }
+    </style>
 </head>
 <body>
 
 <div class="app">
-  <div id="sidebar" class="history-sidebar">
-    <div class="my-profile-section">
-      <img id="myPP" class="my-avatar-edit" title="Klik untuk ganti foto" onclick="document.getElementById('ppInput').click()">
-      <input type="file" id="ppInput" accept="image/*" onchange="uploadPP(this)">
-      <strong id="myUsernameLabel">@username</strong>
+    <div id="sidebar" class="sidebar">
+        <div class="my-profile-card">
+            <div class="my-avatar-wrapper" onclick="document.getElementById('ppInput').click()">
+                <img id="myPP" class="my-avatar-edit" src="https://ui-avatars.com/api/?name=Me">
+                <div class="edit-badge">📷</div>
+            </div>
+            <input type="file" id="ppInput" accept="image/*" onchange="uploadPP(this)">
+            <h3 id="myUsernameLabel">@username</h3>
+        </div>
+        
+        <div style="padding: 15px 20px; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase;">Recent Chats</div>
+        <div id="historyList" class="history-list"></div>
+        
+        <button onclick="toggleSidebar()" style="padding: 20px; background: none; border: none; color: #ef4444; font-weight: 600; cursor: pointer;">Tutup Menu</button>
     </div>
-    
-    <div class="history-header" style="margin-bottom:10px">
-      <h3>Chats History</h3>
-      <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:20px;">✕</button>
+
+    <div class="header">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="profile-target" onclick="addNewChat()">
+            <img id="targetPP" class="target-avatar" src="https://ui-avatars.com/api/?name=User">
+            <div class="target-info">
+                <span class="name" id="targetLabel">Pilih Chat...</span>
+                <span class="status">Ketuk untuk mencari user</span>
+            </div>
+        </div>
     </div>
-    <div id="historyList" class="history-list"></div>
-  </div>
 
-  <div class="header">
-    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-    <div class="profile-target" onclick="addNewChat()">
-      <img id="targetPP" class="target-avatar" src="https://ui-avatars.com/api/?name=User">
-      <div class="target-info">
-        <span class="name" id="targetLabel">Pilih Chat...</span>
-        <span class="status">Tap untuk cari user</span>
-      </div>
+    <div class="chat-area" id="chat"></div>
+
+    <div class="input-area">
+        <button id="micBtn" class="btn-icon mic-btn" onclick="toggleRecording()">🎤</button>
+        <input id="message" placeholder="Ketik pesan..." autocomplete="off">
+        <button class="btn-icon" onclick="send()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
     </div>
-  </div>
-
-  <div class="chat-area" id="chat"></div>
-
-  <div class="input-area">
-    <button id="micBtn" class="btn-icon mic-btn" onclick="toggleRecording()">🎤</button>
-    <input id="message" placeholder="Tulis pesan..." autocomplete="off">
-    <button class="btn-icon" onclick="send()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-    </button>
-  </div>
 </div>
 
 <script>
-const API = "https://chat-backend-u4en.onrender.com";
-const socket = io(API);
+    const API = "https://chat-backend-u4en.onrender.com";
+    const socket = io(API);
 
-const chat = document.getElementById("chat");
-const message = document.getElementById("message");
-const targetLabel = document.getElementById("targetLabel");
-const targetPP = document.getElementById("targetPP");
-const myPP = document.getElementById("myPP");
-const myUsernameLabel = document.getElementById("myUsernameLabel");
-const historyList = document.getElementById("historyList");
-const sidebar = document.getElementById("sidebar");
+    const chat = document.getElementById("chat");
+    const messageInput = document.getElementById("message");
+    const targetLabel = document.getElementById("targetLabel");
+    const targetPP = document.getElementById("targetPP");
+    const myPP = document.getElementById("myPP");
+    const myUsernameLabel = document.getElementById("myUsernameLabel");
+    const historyList = document.getElementById("historyList");
+    const sidebar = document.getElementById("sidebar");
+    const micBtn = document.getElementById("micBtn");
 
-let currentUser = localStorage.getItem("chat_user");
-let currentTarget = localStorage.getItem("chat_target") || "";
-let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
+    let currentUser = localStorage.getItem("chat_user");
+    let currentTarget = localStorage.getItem("chat_target") || "";
+    let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
 
-if(!currentUser) window.location.href = "login.html";
-myUsernameLabel.innerText = "@" + currentUser;
+    if(!currentUser) window.location.href = "login.html";
+    myUsernameLabel.innerText = "@" + currentUser;
 
-// --- FUNGSI GANTI PP ---
-async function loadMyPP() {
-  const res = await fetch(API + "/user/" + currentUser);
-  const data = await res.json();
-  myPP.src = data?.profilePicture || "https://ui-avatars.com/api/?name=" + currentUser;
-}
-loadMyPP();
+    // --- PROFILE PICTURE LOGIC ---
+    async function loadMyPP() {
+        const res = await fetch(`${API}/user/${currentUser}`);
+        const data = await res.json();
+        if(data?.profilePicture) myPP.src = data.profilePicture;
+    }
+    loadMyPP();
 
-async function uploadPP(input) {
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    
-    // Validasi ukuran (contoh max 2MB)
-    if (file.size > 2 * 1024 * 1024) return alert("File terlalu besar (Maks 2MB)");
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      const base64Image = e.target.result;
-      
-      // Update ke Server
-      try {
-        const response = await fetch(API + "/update-pp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: currentUser,
-            profilePicture: base64Image
-          })
-        });
-
-        if (response.ok) {
-          myPP.src = base64Image;
-          alert("Foto profil diperbarui!");
+    async function uploadPP(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64Image = e.target.result;
+                const response = await fetch(`${API}/update-pp`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: currentUser, profilePicture: base64Image })
+                });
+                if (response.ok) {
+                    myPP.src = base64Image;
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
         }
-      } catch (err) {
-        console.error("Gagal update PP:", err);
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-}
-// -----------------------
+    }
 
-function toggleSidebar() {
-  sidebar.classList.toggle("active");
-  renderHistory();
-}
+    // --- NAVIGATION & HISTORY ---
+    function toggleSidebar() {
+        sidebar.classList.toggle("active");
+        if(sidebar.classList.contains("active")) renderHistory();
+    }
 
-function addNewChat() {
-  const user = prompt("Masukkan username tujuan:");
-  if(user) selectUser(user);
-}
+    function addNewChat() {
+        const user = prompt("Masukkan username tujuan:");
+        if(user && user.trim() !== "") selectUser(user.trim());
+    }
 
-function saveToHistory(username) {
-  if(!chatHistory.includes(username)) {
-    chatHistory.unshift(username);
-    if(chatHistory.length > 15) chatHistory.pop();
-    localStorage.setItem("chat_history", JSON.stringify(chatHistory));
-  }
-}
+    function saveToHistory(username) {
+        if(!chatHistory.includes(username) && username !== currentUser) {
+            chatHistory.unshift(username);
+            if(chatHistory.length > 20) chatHistory.pop();
+            localStorage.setItem("chat_history", JSON.stringify(chatHistory));
+        }
+    }
 
-function renderHistory() {
-  historyList.innerHTML = chatHistory.length ? "" : "<p style='opacity:0.5; text-align:center;'>Belum ada history</p>";
-  chatHistory.forEach(user => {
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.innerHTML = `
-      <img src="https://ui-avatars.com/api/?name=${user}" style="width:30px; height:30px; border-radius:50%; object-fit:cover">
-      <span>@${user}</span>
-    `;
-    div.onclick = () => { selectUser(user); toggleSidebar(); };
-    historyList.appendChild(div);
-  });
-}
+    function renderHistory() {
+        historyList.innerHTML = chatHistory.length ? "" : "<p style='opacity:0.5; text-align:center; padding:20px;'>Belum ada chat</p>";
+        chatHistory.forEach(user => {
+            const div = document.createElement("div");
+            div.className = "history-item";
+            div.innerHTML = `
+                <img src="https://ui-avatars.com/api/?name=${user}&background=random" style="width:35px; height:35px; border-radius:50%; object-fit:cover">
+                <span style="font-weight:500;">@${user}</span>
+            `;
+            div.onclick = () => { selectUser(user); toggleSidebar(); };
+            historyList.appendChild(div);
+        });
+    }
 
-function selectUser(u){
-  currentTarget = u;
-  localStorage.setItem("chat_target", u);
-  saveToHistory(u);
-  updateTargetUI(u);
-  loadHistory();
-}
+    function selectUser(u){
+        currentTarget = u;
+        localStorage.setItem("chat_target", u);
+        saveToHistory(u);
+        updateTargetUI(u);
+        loadHistory();
+    }
 
-async function updateTargetUI(username) {
-  targetLabel.innerText = "@" + username;
-  const res = await fetch(API + "/user/" + username);
-  const data = await res.json();
-  targetPP.src = data?.profilePicture || "https://ui-avatars.com/api/?name=" + username;
-}
+    async function updateTargetUI(username) {
+        targetLabel.innerText = "@" + username;
+        const res = await fetch(`${API}/user/${username}`);
+        const data = await res.json();
+        targetPP.src = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
+    }
 
-socket.on("connect", () => socket.emit("join", currentUser));
+    // --- MESSAGING ---
+    socket.on("connect", () => socket.emit("join", currentUser));
 
-async function loadHistory(){
-  if(!currentTarget) return;
-  chat.innerHTML = "";
-  const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
-  const messages = await res.json();
-  messages.forEach(createMessage);
-}
+    async function loadHistory(){
+        if(!currentTarget) return;
+        chat.innerHTML = "";
+        const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
+        const messages = await res.json();
+        messages.forEach(createMessage);
+    }
 
-function createMessage(data){
-  const isMe = data.sender === currentUser;
-  const row = document.createElement("div");
-  row.className = "message-row " + (isMe ? "me" : "other");
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  if(data.type === "audio"){
-    const audio = document.createElement("audio");
-    audio.controls = true; audio.src = data.message;
-    bubble.appendChild(audio);
-  } else {
-    bubble.innerText = data.message;
-  }
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.innerText = new Date(data.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-  const wrap = document.createElement("div");
-  wrap.appendChild(bubble); wrap.appendChild(meta);
-  row.appendChild(wrap);
-  chat.appendChild(row);
-  chat.scrollTop = chat.scrollHeight;
-}
+    function createMessage(data){
+        const isMe = data.sender === currentUser;
+        const row = document.createElement("div");
+        row.className = `message-row ${isMe ? 'me' : 'other'}`;
 
-function send(){
-  const val = message.value.trim();
-  if(!currentTarget || !val) return;
-  socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text" });
-  message.value = "";
-}
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
 
-// VN Logic
-let mediaRecorder; let audioChunks = []; let isRecording = false;
-async function toggleRecording(){
-  if(!currentTarget) return alert("Pilih target dulu");
-  if(!isRecording){
-    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks,{ type:"audio/webm" });
-      const reader = new FileReader();
-      reader.onloadend = () => { socket.emit("send_message",{ sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" }); };
-      reader.readAsDataURL(blob);
-    };
-    mediaRecorder.start(); isRecording = true; micBtn.classList.add("mic-recording");
-  }else{
-    mediaRecorder.stop(); isRecording = false; micBtn.classList.remove("mic-recording");
-  }
-}
+        if(data.type === "audio"){
+            const audio = document.createElement("audio");
+            audio.controls = true; audio.src = data.message;
+            bubble.appendChild(audio);
+        } else {
+            bubble.innerText = data.message;
+        }
 
-socket.on("receive_message",(data)=>{
-  if(currentTarget === data.sender || currentTarget === data.receiver){ createMessage(data); }
-  if(data.sender !== currentUser) saveToHistory(data.sender);
-});
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const time = new Date(data.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        meta.innerHTML = `${time} ${isMe ? (data.read ? '<span style="color:#22c55e">✓✓</span>' : '✓') : ''}`;
 
-if(currentTarget) { updateTargetUI(currentTarget); loadHistory(); }
-message.addEventListener("keypress", (e) => { if(e.key === "Enter") send(); });
+        const wrap = document.createElement("div");
+        wrap.appendChild(bubble);
+        wrap.appendChild(meta);
+        row.appendChild(wrap);
+        chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
+
+        if(!isMe && !data.read) socket.emit("read_message", data._id);
+    }
+
+    function send(){
+        const val = messageInput.value.trim();
+        if(!currentTarget || !val) return;
+        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text" });
+        messageInput.value = "";
+    }
+
+    // --- VOICE NOTE LOGIC ---
+    let mediaRecorder; let audioChunks = []; let isRecording = false;
+    async function toggleRecording(){
+        if(!currentTarget) return alert("Pilih target chat dulu");
+        if(!isRecording){
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(audioChunks,{ type:"audio/webm" });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        socket.emit("send_message",{ sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
+                    };
+                    reader.readAsDataURL(blob);
+                };
+                mediaRecorder.start(); 
+                isRecording = true; 
+                micBtn.classList.add("mic-recording");
+            } catch(e) { alert("Mic tidak diizinkan atau tidak ditemukan"); }
+        } else {
+            mediaRecorder.stop(); 
+            isRecording = false; 
+            micBtn.classList.remove("mic-recording");
+        }
+    }
+
+    // --- SOCKET EVENTS ---
+    socket.on("receive_message", (data) => {
+        if(currentTarget === data.sender || currentTarget === data.receiver){
+            createMessage(data);
+        }
+        if(data.sender !== currentUser) saveToHistory(data.sender);
+    });
+
+    socket.on("pp_updated", (data) => {
+        if(currentTarget === data.username) targetPP.src = data.profilePicture;
+    });
+
+    // --- INIT ---
+    if(currentTarget) {
+        updateTargetUI(currentTarget);
+        loadHistory();
+    }
+    messageInput.addEventListener("keypress", (e) => { if(e.key === "Enter") send(); });
 </script>
 </body>
 </html>
