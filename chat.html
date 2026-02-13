@@ -2,421 +2,171 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>XENZDOCHAT - Ultimate Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XENZDOCHAT FINAL</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: #020617; color: white; height: 100dvh; overflow: hidden; }
+        .app { max-width: 480px; margin: auto; height: 100%; display: flex; flex-direction: column; position: relative; background: #020617; }
         
-        body {
-            background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%);
-            color: white;
-            height: 100dvh;
-            overflow: hidden;
-        }
-
-        .app {
-            max-width: 480px;
-            margin: auto;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            background: rgba(2, 6, 23, 0.9);
-            backdrop-filter: blur(20px);
-            position: relative;
-        }
-
-        /* HEADER */
-        .header {
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(2, 6, 23, 0.95);
-            z-index: 10;
-        }
-
-        .menu-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 4px; }
-
-        .profile-target { display: flex; align-items: center; gap: 12px; flex: 1; }
-
-        .target-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #2563eb;
-            background: #1e293b;
-        }
-
-        .target-info .name { font-weight: 600; font-size: 15px; display: block; }
-        .target-info .status { font-size: 11px; color: #94a3b8; transition: 0.3s; }
-        .status.online { color: #22c55e; }
-        .status.typing { color: #2563eb; font-style: italic; font-weight: 500; }
-
-        /* SIDEBAR */
-        .sidebar {
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 85%;
-            height: 100%;
-            background: #0f172a;
-            z-index: 100;
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-        }
-
+        /* Sidebar */
+        .sidebar { position: absolute; left: -100%; width: 80%; height: 100%; background: #0f172a; z-index: 100; transition: 0.3s; padding: 20px; }
         .sidebar.active { left: 0; }
+        .search-box { width: 100%; padding: 10px; background: #1e293b; border: none; color: white; border-radius: 8px; margin-bottom: 20px; }
 
-        .my-profile-card {
-            padding: 30px 20px;
-            text-align: center;
-            background: rgba(37, 99, 235, 0.05);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
+        /* Header */
+        .header { padding: 15px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #1e293b; }
+        .status { font-size: 11px; color: #94a3b8; }
+        .online { color: #22c55e !important; }
 
-        .my-avatar-wrapper { position: relative; display: inline-block; cursor: pointer; }
-        .my-avatar-edit { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb; }
+        /* Chat */
+        .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .message-row { display: flex; flex-direction: column; max-width: 80%; }
+        .me { align-self: flex-end; align-items: flex-end; }
+        .other { align-self: flex-start; }
+        .bubble { padding: 10px 15px; border-radius: 15px; font-size: 14px; background: #1e293b; }
+        .me .bubble { background: #2563eb; }
+        .meta { font-size: 10px; margin-top: 4px; color: #94a3b8; display: flex; gap: 5px; }
+        .read-tick { color: #38bdf8; font-weight: bold; }
 
-        .search-container { padding: 15px; }
-        .search-box {
-            width: 100%;
-            padding: 12px 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: #1e293b;
-            color: white;
-            outline: none;
-            font-size: 14px;
-        }
-
-        /* CHAT AREA */
-        .chat-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-bottom: 90px;
-        }
-
-        .message-row { display: flex; align-items: flex-end; gap: 8px; }
-        .me { justify-content: flex-end; }
-
-        .bubble {
-            padding: 10px 14px;
-            border-radius: 18px;
-            font-size: 14px;
-            word-wrap: break-word;
-            max-width: 280px;
-            line-height: 1.4;
-        }
-
-        .me .bubble { background: #2563eb; border-bottom-right-radius: 4px; color: white; }
-        .other .bubble { background: #1e293b; border-bottom-left-radius: 4px; color: #e2e8f0; }
-
-        .meta { font-size: 10px; margin-top: 4px; opacity: 0.7; display: flex; align-items: center; gap: 4px; }
-        .me .meta { justify-content: flex-end; }
-
-        .ticks { font-size: 12px; font-weight: bold; }
-        .ticks.read { color: #38bdf8; }
-        .ticks.sent { color: #94a3b8; }
-
-        /* INPUT AREA */
-        .input-area {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            max-width: 480px;
-            margin: auto;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px;
-            background: rgba(15, 23, 42, 0.98);
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-
-        input#message {
-            flex: 1;
-            padding: 12px 18px;
-            border-radius: 25px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: #1e293b;
-            color: white;
-            outline: none;
-        }
-
-        .btn-icon {
-            background: #2563eb;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .history-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .history-item {
-            display: flex; align-items: center; gap: 12px; padding: 12px;
-            border-radius: 12px; cursor: pointer; transition: 0.2s;
-        }
-        .history-item:hover { background: rgba(255,255,255,0.05); }
-
-        #ppInput { display: none; }
-        audio { height: 35px; width: 200px; margin-top: 5px; }
+        /* Input */
+        .input-area { padding: 15px; display: flex; gap: 10px; background: #0f172a; }
+        #message { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #1e293b; color: white; outline: none; }
+        .btn { background: #2563eb; border: none; color: white; padding: 10px 15px; border-radius: 50%; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="app">
     <div id="sidebar" class="sidebar">
-        <div class="my-profile-card">
-            <div class="my-avatar-wrapper" onclick="document.getElementById('ppInput').click()">
-                <img id="myPP" class="my-avatar-edit" src="https://ui-avatars.com/api/?name=Me">
-                <div style="position:absolute; bottom:0; right:0; background:#2563eb; border-radius:50%; padding:4px; font-size:10px;">📷</div>
-            </div>
-            <input type="file" id="ppInput" accept="image/*" onchange="uploadPP(this)">
-            <h4 id="myUsernameLabel" style="margin-top:10px">@username</h4>
-        </div>
-
-        <div class="search-container">
-            <input type="text" class="search-box" placeholder="Cari username..." onkeypress="handleSearch(event)">
-        </div>
-        
-        <div style="padding: 10px 20px; font-size: 11px; color: #64748b; font-weight: 600;">HISTORY CHAT</div>
-        <div id="historyList" class="history-list"></div>
-        
-        <button onclick="toggleSidebar()" style="padding: 20px; background: none; border: none; color: #ef4444; font-weight: 600; cursor: pointer;">TUTUP MENU</button>
+        <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:70px; height:70px; border-radius:50%; margin-bottom:10px; cursor:pointer">
+        <input type="file" id="ppInput" hidden accept="image/*" onchange="uploadPP(this)">
+        <h4 id="uNameDisplay" style="margin-bottom:20px"></h4>
+        <input type="text" class="search-box" placeholder="Cari username..." onkeypress="handleSearch(event)">
+        <div id="historyList"></div>
+        <button onclick="toggleSidebar()" style="margin-top:20px; color:red; background:none; border:none">Tutup</button>
     </div>
 
     <div class="header">
-        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-        <div class="profile-target">
-            <img id="targetPP" class="target-avatar" src="https://ui-avatars.com/api/?name=User">
-            <div class="target-info">
-                <span class="name" id="targetLabel">Pilih Chat...</span>
-                <span id="targetStatus" class="status">Offline</span>
-            </div>
+        <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:20px">☰</button>
+        <img id="targetPP" class="avatar" src="">
+        <div>
+            <div id="targetLabel" style="font-weight:bold">Pilih Chat</div>
+            <div id="targetStatus" class="status">Offline</div>
         </div>
     </div>
 
     <div class="chat-area" id="chat"></div>
 
     <div class="input-area">
-        <button id="micBtn" class="btn-icon" onclick="toggleRecording()" style="background:rgba(255,255,255,0.1)">🎤</button>
-        <input id="message" placeholder="Ketik pesan..." autocomplete="off">
-        <button class="btn-icon" onclick="send()">➤</button>
+        <button id="micBtn" class="btn" onclick="toggleRecording()">🎤</button>
+        <input id="message" placeholder="Ketik..." autocomplete="off">
+        <button class="btn" onclick="send()">➤</button>
     </div>
 </div>
 
 <script>
     const API = "https://chat-backend-u4en.onrender.com";
     const socket = io(API);
-
     const chat = document.getElementById("chat");
     const messageInput = document.getElementById("message");
-    const targetLabel = document.getElementById("targetLabel");
-    const targetStatus = document.getElementById("targetStatus");
-    const targetPP = document.getElementById("targetPP");
-    const myPP = document.getElementById("myPP");
-    const historyList = document.getElementById("historyList");
-    const sidebar = document.getElementById("sidebar");
-    const micBtn = document.getElementById("micBtn");
-
     let currentUser = localStorage.getItem("chat_user");
     let currentTarget = localStorage.getItem("chat_target") || "";
     let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
-    let typingTimeout;
 
-    if(!currentUser) window.location.href = "login.html";
-    document.getElementById("myUsernameLabel").innerText = "@" + currentUser;
+    if(!currentUser) window.location.href="login.html";
+    document.getElementById("uNameDisplay").innerText = "@"+currentUser;
 
-    // --- PROFILE & INITIAL LOAD ---
-    async function loadMyProfile() {
-        const res = await fetch(`${API}/user/${currentUser}`);
-        const data = await res.json();
-        if(data?.profilePicture) myPP.src = data.profilePicture;
+    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); if(document.getElementById("sidebar").classList.contains("active")) renderHistory(); }
+    
+    function renderHistory() {
+        const list = document.getElementById("historyList");
+        list.innerHTML = chatHistory.map(u => `<div onclick="selectUser('${u}')" style="padding:10px; cursor:pointer">@${u}</div>`).join("");
     }
-    loadMyProfile();
+
+    function handleSearch(e) { if(e.key === "Enter") { selectUser(e.target.value); e.target.value=""; toggleSidebar(); } }
+
+    async function selectUser(u) {
+        if(u === currentUser) return;
+        currentTarget = u; localStorage.setItem("chat_target", u);
+        if(!chatHistory.includes(u)) { chatHistory.unshift(u); localStorage.setItem("chat_history", JSON.stringify(chatHistory)); }
+        const res = await fetch(`${API}/user/${u}`);
+        const data = await res.json();
+        document.getElementById("targetLabel").innerText = "@"+u;
+        document.getElementById("targetPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${u}`;
+        document.getElementById("targetStatus").innerText = data?.status === "online" ? "Online" : "Offline";
+        document.getElementById("targetStatus").className = "status " + (data?.status === "online" ? "online" : "");
+        loadHistory();
+    }
+
+    async function loadHistory() {
+        chat.innerHTML = "";
+        const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
+        (await res.json()).forEach(createMessage);
+    }
+
+    function createMessage(data) {
+        const isMe = data.sender === currentUser;
+        const row = document.createElement("div");
+        row.className = `message-row ${isMe ? 'me' : 'other'}`;
+        
+        let content = data.type === "audio" ? `<audio src="${data.message}" controls></audio>` : data.message;
+        let ticks = isMe ? `<span id="tick-${data._id}" class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : "";
+        
+        row.innerHTML = `<div class="bubble">${content}</div><div class="meta">${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${ticks}</div>`;
+        chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
+
+        if(!isMe && !data.read) socket.emit("read_message", { messageId: data._id, sender: data.sender });
+    }
+
+    function send() {
+        const val = messageInput.value.trim();
+        if(!val || !currentTarget) return;
+        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text" });
+        messageInput.value = "";
+    }
+
+    // Status & Typing
+    socket.on("connect", () => socket.emit("join", currentUser));
+    socket.on("user_status", d => { if(d.username === currentTarget) { document.getElementById("targetStatus").innerText = d.status === "online" ? "Online" : "Offline"; document.getElementById("targetStatus").className = "status " + (d.status === "online" ? "online" : ""); } });
+    socket.on("display_typing", d => { if(d.sender === currentTarget) document.getElementById("targetStatus").innerText = d.isTyping ? "Sedang mengetik..." : "Online"; });
+    socket.on("message_read", d => { const t = document.getElementById(`tick-${d.messageId}`); if(t) { t.innerText = "✓✓"; t.classList.add("read-tick"); } });
+    socket.on("receive_message", d => { if(currentTarget === d.sender || currentTarget === d.receiver) createMessage(d); });
+
+    messageInput.oninput = () => { socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: true }); clearTimeout(window.tT); window.tT = setTimeout(() => socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false }), 2000); };
+
+    // VN Logic
+    let rec; let chunks = [];
+    async function toggleRecording() {
+        if(!isRec) {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            rec = new MediaRecorder(stream); chunks = [];
+            rec.ondataavailable = e => chunks.push(e.data);
+            rec.onstop = () => {
+                const reader = new FileReader();
+                reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
+                reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
+            };
+            rec.start(); isRec = true; document.getElementById("micBtn").style.color = "red";
+        } else { rec.stop(); isRec = false; document.getElementById("micBtn").style.color = "white"; }
+    }
+    let isRec = false;
 
     async function uploadPP(input) {
-        if (input.files && input.files[0]) {
+        if(input.files[0]) {
             const reader = new FileReader();
             reader.onload = async (e) => {
-                const base64Image = e.target.result;
-                await fetch(`${API}/update-pp`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username: currentUser, profilePicture: base64Image })
-                });
-                myPP.src = base64Image;
+                await fetch(`${API}/update-pp`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ username: currentUser, profilePicture: e.target.result }) });
+                document.getElementById("myPP").src = e.target.result;
             };
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    // --- NAVIGATION & SEARCH ---
-    function toggleSidebar() { sidebar.classList.toggle("active"); if(sidebar.classList.contains("active")) renderHistory(); }
-
-    function handleSearch(e) {
-        if(e.key === "Enter") {
-            const user = e.target.value.trim();
-            if(user && user !== currentUser) { selectUser(user); e.target.value = ""; toggleSidebar(); }
-        }
-    }
-
-    function selectUser(u){
-        currentTarget = u;
-        localStorage.setItem("chat_target", u);
-        if(!chatHistory.includes(u)) { chatHistory.unshift(u); localStorage.setItem("chat_history", JSON.stringify(chatHistory)); }
-        updateTargetUI(u);
-        loadHistory();
-    }
-
-    async function updateTargetUI(username) {
-        targetLabel.innerText = "@" + username;
-        const res = await fetch(`${API}/user/${username}`);
-        const data = await res.json();
-        targetPP.src = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
-        if(data?.lastSeen) targetStatus.innerText = "Terakhir dilihat " + new Date(data.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    }
-
-    function renderHistory() {
-        historyList.innerHTML = chatHistory.length ? "" : "<p style='opacity:0.3; text-align:center; padding:20px; font-size:12px;'>Belum ada chat</p>";
-        chatHistory.forEach(user => {
-            const div = document.createElement("div");
-            div.className = "history-item";
-            div.innerHTML = `<img src="https://ui-avatars.com/api/?name=${user}" style="width:35px; border-radius:50%"> <span>@${user}</span>`;
-            div.onclick = () => { selectUser(user); toggleSidebar(); };
-            historyList.appendChild(div);
-        });
-    }
-
-    // --- MESSAGING & STATUS ---
-    socket.on("connect", () => socket.emit("join", currentUser));
-
-    async function loadHistory(){
-        if(!currentTarget) return;
-        chat.innerHTML = "";
-        const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
-        const messages = await res.json();
-        messages.forEach(createMessage);
-    }
-
-    function createMessage(data){
-        const isMe = data.sender === currentUser;
-        const row = document.createElement("div");
-        row.className = `message-row ${isMe ? 'me' : 'other'}`;
-
-        const bubble = document.createElement("div");
-        bubble.className = "bubble";
-        if(data.type === "audio"){
-            const audio = document.createElement("audio");
-            audio.src = data.message; audio.controls = true;
-            bubble.appendChild(audio);
-        } else { bubble.innerText = data.message; }
-
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        const time = new Date(data.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        let ticks = "";
-        if(isMe) {
-            const tickClass = data.read ? "read" : "sent";
-            const tickIcon = data.read ? "✓✓" : "✓";
-            ticks = `<span class="ticks ${tickClass}" id="tick-${data._id}">${tickIcon}</span>`;
-        }
-
-        meta.innerHTML = `${time} ${ticks}`;
-        const wrap = document.createElement("div");
-        wrap.appendChild(bubble); wrap.appendChild(meta);
-        row.appendChild(wrap); chat.appendChild(row);
-        chat.scrollTop = chat.scrollHeight;
-
-        if(!isMe && !data.read && data._id) {
-            socket.emit("read_message", { messageId: data._id, sender: data.sender });
-        }
-    }
-
-    function send(){
-        const val = messageInput.value.trim();
-        if(!currentTarget || !val) return;
-        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text" });
-        messageInput.value = "";
-        socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false });
-    }
-
-    // --- SOCKET LISTENERS ---
-    socket.on("receive_message", (data) => {
-        if(currentTarget === data.sender || currentTarget === data.receiver) createMessage(data);
-    });
-
-    socket.on("message_read", ({ messageId }) => {
-        const tickElement = document.getElementById(`tick-${messageId}`);
-        if(tickElement) { tickElement.innerText = "✓✓"; tickElement.className = "ticks read"; }
-    });
-
-    socket.on("display_typing", (data) => {
-        if(data.sender === currentTarget) {
-            targetStatus.innerText = data.isTyping ? "sedang mengetik..." : "Online";
-            targetStatus.className = data.isTyping ? "status typing" : "status online";
-        }
-    });
-
-    socket.on("user_status", (data) => {
-        if(data.username === currentTarget) {
-            targetStatus.innerText = data.status === "online" ? "Online" : "Terakhir dilihat " + new Date(data.lastSeen).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            targetStatus.className = data.status === "online" ? "status online" : "status";
-        }
-    });
-
-    // --- VOICE NOTE ---
-    let mediaRecorder; let audioChunks = []; let isRecording = false;
-    async function toggleRecording(){
-        if(!currentTarget) return alert("Pilih target chat dulu");
-        if(!isRecording){
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(audioChunks,{ type:"audio/webm" });
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        socket.emit("send_message",{ sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
-                    };
-                    reader.readAsDataURL(blob);
-                };
-                mediaRecorder.start(); isRecording = true; micBtn.style.background = "#ef4444";
-            } catch(e) { alert("Mic tidak diizinkan"); }
-        } else {
-            mediaRecorder.stop(); isRecording = false; micBtn.style.background = "rgba(255,255,255,0.1)";
-        }
-    }
-
-    // Typing listener
-    messageInput.addEventListener("input", () => {
-        socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: true });
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false }), 2000);
-    });
-
-    if(currentTarget) { updateTargetUI(currentTarget); loadHistory(); }
     messageInput.addEventListener("keypress", (e) => { if(e.key === "Enter") send(); });
+    if(currentTarget) selectUser(currentTarget);
 </script>
 </body>
 </html>
