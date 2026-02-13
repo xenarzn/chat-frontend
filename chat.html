@@ -21,7 +21,6 @@
         .app { 
             max-width: 480px; margin: auto; height: 100%; display: flex; flex-direction: column; 
             background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(30px) saturate(180%);
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
             border: 1px solid var(--glass-border); position: relative;
         }
 
@@ -37,37 +36,32 @@
         .online-dot { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
         .offline-dot { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
-        /* --- SIDEBAR LIQUID GLASS --- */
+        /* --- SIDEBAR --- */
         .sidebar { 
             position: absolute; left: -100%; width: 85%; height: 100%; 
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(40px); 
             z-index: 100; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 25px; 
-            border-right: 1px solid var(--liquid-blue);
-            display: flex; flex-direction: column;
+            border-right: 1px solid var(--liquid-blue); display: flex; flex-direction: column;
         }
         .sidebar.active { left: 0; }
         
-        #historyList { flex: 1; overflow-y: auto; margin-bottom: 20px; }
+        #historyList { flex: 1; overflow-y: auto; margin-top: 15px; }
 
         .history-item { 
             display: flex; align-items: center; gap: 12px; padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--liquid-blue);
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--liquid-blue);
             border-radius: 15px; cursor: pointer; transition: 0.3s; margin-bottom: 12px;
         }
         .history-item:hover { background: rgba(37, 99, 235, 0.2); transform: translateX(5px); box-shadow: 0 0 15px var(--liquid-blue); }
 
-        /* Logout Button */
         .btn-logout {
             width: 100%; padding: 12px; background: rgba(239, 68, 68, 0.1); 
             color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); 
-            border-radius: 12px; cursor: pointer; font-weight: 700; 
-            transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 10px;
         }
-        .btn-logout:hover { background: rgba(239, 68, 68, 0.2); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
 
         /* --- CHAT AREA --- */
-        .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
         .message-row { display: flex; flex-direction: column; max-width: 85%; animation: slideIn 0.3s ease; position: relative; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -78,17 +72,10 @@
             padding: 12px 16px; border-radius: 20px; font-size: 14.5px; backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border); position: relative; cursor: pointer;
         }
-        .me .bubble { background: var(--primary-glass); border: 1px solid rgba(255,255,255,0.2); border-bottom-right-radius: 4px; }
+        .me .bubble { background: var(--primary-glass); border-bottom-right-radius: 4px; }
         .other .bubble { background: rgba(255, 255, 255, 0.07); border-bottom-left-radius: 4px; }
 
-        .action-menu { 
-            position: absolute; top: -45px; right: 0; display: none; 
-            background: rgba(15, 23, 42, 0.95); border: 1px solid var(--liquid-blue);
-            border-radius: 12px; backdrop-filter: blur(15px); z-index: 50;
-        }
-        .action-menu button { padding: 8px 15px; border: none; background: none; color: white; font-size: 11px; cursor: pointer; }
-
-        /* --- INPUT & AUDIO --- */
+        /* --- INPUT --- */
         .input-area { padding: 15px; background: rgba(2, 6, 23, 0.5); backdrop-filter: blur(25px); border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
         #message { flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; }
         .btn-action { width: 45px; height: 45px; border-radius: 50%; border: none; cursor: pointer; color: white; background: var(--primary-glass); display: flex; align-items: center; justify-content: center; }
@@ -102,30 +89,27 @@
 
 <div class="app">
     <div id="sidebar" class="sidebar">
-        <div style="text-align:center; margin-bottom:20px;">
-            <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:80px; height:80px; border-radius:50%; border:3px solid var(--liquid-blue); cursor:pointer; object-fit:cover;">
-            <input type="file" id="ppInput" hidden accept="image/*" onchange="uploadPP(this)">
-            <h3 id="uNameDisplay" style="margin-top:10px;"></h3>
+        <div style="text-align:center;">
+            <img id="myPP" style="width:70px; height:70px; border-radius:50%; border:2px solid var(--liquid-blue); object-fit:cover;">
+            <h3 id="uNameDisplay" style="margin-top:8px; font-size:16px;"></h3>
         </div>
         
-        <input id="searchInput" placeholder="Cari teman..." style="width:100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:white; border-radius:10px; margin-bottom:15px; outline:none;" onkeypress="handleSearch(event)">
+        <input id="searchInput" placeholder="Cari username..." style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:white; border-radius:10px; margin-top:15px; outline:none;" onkeypress="handleSearch(event)">
         
         <div id="historyList"></div>
 
-        <button class="btn-logout" onclick="logout()">
-            <span>🚪</span> Keluar Akun
-        </button>
-        <button onclick="toggleSidebar()" style="width:100%; margin-top:10px; padding:10px; background:none; color:#64748b; border:none; cursor:pointer; font-size:12px;">Tutup</button>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+        <button onclick="toggleSidebar()" style="background:none; border:none; color:#64748b; margin-top:10px; cursor:pointer;">Tutup</button>
     </div>
 
     <div class="header">
         <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">☰</button>
-        <img id="targetPP" class="avatar" src="https://ui-avatars.com/api/?name=User">
+        <img id="targetPP" class="avatar" src="https://ui-avatars.com/api/?name=?">
         <div style="flex:1">
-            <div id="targetLabel" style="font-weight:bold; font-size:15px;">Pilih Chat</div>
+            <div id="targetLabel" style="font-weight:bold; font-size:15px;">XENZDOCHAT</div>
             <div style="display:flex; align-items:center; font-size:11px;">
                 <span id="statusDot" class="status-dot"></span>
-                <span id="statusText" style="color:#94a3b8;">Offline</span>
+                <span id="statusText">Pilih teman</span>
             </div>
         </div>
     </div>
@@ -133,8 +117,8 @@
     <div class="chat-area" id="chat"></div>
 
     <div class="input-area">
-        <button id="micBtn" class="btn-action" onclick="toggleRecording()" style="background:rgba(255,255,255,0.05)">🎤</button>
-        <input id="message" placeholder="Tulis pesan..." autocomplete="off">
+        <button id="micBtn" class="btn-action" onclick="toggleRecording()">🎤</button>
+        <input id="message" placeholder="Ketik pesan..." autocomplete="off">
         <button class="btn-action" onclick="send()">➤</button>
     </div>
 </div>
@@ -147,108 +131,85 @@
     
     let currentUser = localStorage.getItem("chat_user");
     let currentTarget = localStorage.getItem("chat_target") || "";
+    
+    // Perbaikan: History diambil dari localStorage, jika kosong inisialisasi array kosong
     let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
-    let isRec = false; let rec; let chunks = [];
 
     if(!currentUser) window.location.href="index.html";
 
-    // --- FITUR LOGOUT ---
-    function logout() {
-        if(confirm("Apakah Anda yakin ingin keluar?")) {
-            localStorage.removeItem("chat_user");
-            localStorage.removeItem("chat_target");
-            window.location.href = "https://chat-frontend-ten-eta.vercel.app";
-        }
-    }
-
-    // --- CORE LOGIC (Profil, Chat, VN, dll) ---
-    async function loadMyProfile() {
+    // --- RECOVERY HISTORY DARI SERVER ---
+    async function recoverHistoryFromServer() {
         try {
-            const res = await fetch(`${API}/user/${currentUser}`);
+            // Kita coba fetch semua pesan terakhir user untuk mencari siapa saja yang pernah chat
+            const res = await fetch(`${API}/messages/all/${currentUser}`);
             const data = await res.json();
-            document.getElementById("myPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${currentUser}`;
-            document.getElementById("uNameDisplay").innerText = "@" + currentUser;
-        } catch(e) {}
+            
+            // Ambil daftar unik username lawan bicara
+            const uniqueUsers = [...new Set(data.map(m => m.sender === currentUser ? m.receiver : m.sender))];
+            
+            if(uniqueUsers.length > 0) {
+                chatHistory = uniqueUsers;
+                localStorage.setItem("chat_history", JSON.stringify(chatHistory));
+                renderHistory();
+            }
+        } catch (e) { console.log("Gagal mengambil history dari server"); }
     }
-    loadMyProfile();
 
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active"); 
-        if(document.getElementById("sidebar").classList.contains("active")) renderHistory(); 
+        renderHistory();
     }
 
     async function renderHistory() {
         const list = document.getElementById("historyList");
-        list.innerHTML = "";
+        list.innerHTML = chatHistory.length === 0 ? "<p style='text-align:center; opacity:0.5; margin-top:20px;'>Belum ada riwayat chat</p>" : "";
+        
         for (const username of chatHistory) {
             const res = await fetch(`${API}/user/${username}`);
             const data = await res.json();
             const pp = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
-            list.innerHTML += `<div class="history-item" onclick="selectUser('${username}'); toggleSidebar();">
-                <img src="${pp}" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--liquid-blue);">
-                <div><div style="font-weight:600; font-size:14px;">@${username}</div><div style="font-size:10px; opacity:0.5;">Klik untuk chat</div></div>
-            </div>`;
+            list.innerHTML += `
+                <div class="history-item" onclick="selectUser('${username}'); toggleSidebar();">
+                    <img src="${pp}" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--liquid-blue);">
+                    <div>
+                        <div style="font-weight:600; font-size:14px;">@${username}</div>
+                        <div style="font-size:10px; opacity:0.5;">Ketuk untuk mengobrol</div>
+                    </div>
+                </div>`;
         }
     }
 
+    function handleSearch(e) { 
+        if(e.key === "Enter") { 
+            const u = e.target.value.trim();
+            if(u) { selectUser(u); e.target.value=""; toggleSidebar(); }
+        } 
+    }
+
     async function selectUser(u) {
-        if(u === currentUser || !u) return;
+        if(u === currentUser) return;
         currentTarget = u;
         localStorage.setItem("chat_target", u);
-        chatHistory = [u, ...chatHistory.filter(n => n !== u)].slice(0, 10);
+        
+        // Update History Local
+        chatHistory = [u, ...chatHistory.filter(n => n !== u)].slice(0, 15);
         localStorage.setItem("chat_history", JSON.stringify(chatHistory));
+
         const res = await fetch(`${API}/user/${u}`);
         const data = await res.json();
         document.getElementById("targetLabel").innerText = "@" + u;
         document.getElementById("targetPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${u}`;
-        updateStatusUI(data?.status);
+        
         loadHistory();
     }
 
     async function loadHistory() {
-        chat.innerHTML = "";
+        if(!currentTarget) return;
+        chat.innerHTML = "<p style='text-align:center; opacity:0.3;'>Memuat pesan...</p>";
         const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
         const msgs = await res.json();
+        chat.innerHTML = "";
         msgs.forEach(createMessage);
-    }
-
-    function createMessage(data) {
-        const isMe = data.sender === currentUser;
-        const row = document.createElement("div");
-        row.className = `message-row ${isMe ? 'me' : 'other'}`;
-        let content = data.type === "audio" ? `<audio controls src="${data.message}"></audio>` : `<span>${data.message}</span>`;
-        row.innerHTML = `<div class="bubble">${content}<div class="meta">${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${isMe ? `<span class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : ''}</div></div>`;
-        chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
     }
-
-    function send() {
-        const val = messageInput.value.trim();
-        if(!val || !currentTarget) return;
-        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text" });
-        messageInput.value = "";
-    }
-
-    async function toggleRecording() {
-        const btn = document.getElementById("micBtn");
-        if (!isRec) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                rec = new MediaRecorder(stream); chunks = [];
-                rec.ondataavailable = e => chunks.push(e.data);
-                rec.onstop = () => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
-                    reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
-                };
-                rec.start(); isRec = true; btn.innerHTML = "⏹"; btn.style.background = "#ef4444";
-            } catch(e) { alert("Mic ditolak"); }
-        } else { rec.stop(); isRec = false; btn.innerHTML = "🎤"; btn.style.background = "rgba(255,255,255,0.05)"; }
-    }
-
-    socket.on("receive_message", d => { if(d.sender === currentTarget || d.sender === currentUser) createMessage(d); });
-    socket.on("connect", () => socket.emit("join", currentUser));
-    if(currentTarget) selectUser(currentTarget);
-</script>
-</body>
-</html>
+    
