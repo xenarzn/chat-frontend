@@ -219,18 +219,42 @@
 
     // VN & Upload PP
     async function toggleRecording() {
-        if(!isRec) {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            rec = new MediaRecorder(stream); chunks = [];
-            rec.ondataavailable = e => chunks.push(e.data);
-            rec.onstop = () => {
-                const reader = new FileReader();
-                reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
-                reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
+    if (!isRec) {
+        // Mulai Rekam
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        rec = new MediaRecorder(stream);
+        chunks = [];
+
+        rec.ondataavailable = e => chunks.push(e.data);
+        
+        rec.onstop = () => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                socket.emit("send_message", { 
+                    sender: currentUser, 
+                    receiver: currentTarget, 
+                    message: reader.result, 
+                    type: "audio" 
+                });
             };
-            rec.start(); isRec = true; document.getElementById("micBtn").style.background = "#ef4444";
-        } else { rec.stop(); isRec = false; document.getElementById("micBtn").style.background = "#334155"; }
+            reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
+
+            // --- BAGIAN PERBAIKAN: Mematikan Mic Sepenuhnya ---
+            stream.getTracks().forEach(track => track.stop()); 
+            // ------------------------------------------------
+        };
+
+        rec.start();
+        isRec = true;
+        document.getElementById("micBtn").style.background = "#ef4444"; // Warna merah saat rekam
+    } else {
+        // Berhenti Rekam
+        rec.stop();
+        isRec = false;
+        document.getElementById("micBtn").style.background = "#334155"; // Kembali ke warna asal
     }
+}
+
 
     async function uploadPP(input) {
         if(input.files[0]) {
