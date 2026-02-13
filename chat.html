@@ -31,17 +31,33 @@ body{
 }
 
 .header{
-  padding:16px;
-  font-weight:600;
-  font-size:18px;
+  padding:12px 16px;
   border-bottom:1px solid rgba(255,255,255,0.05);
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  position:sticky;
-  top:0;
+  justify-content:space-between;
+  gap:10px;
   background:rgba(2,6,23,0.95);
-  z-index:10;
+}
+
+.profile{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.my-avatar{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  object-fit:cover;
+  cursor:pointer;
+  border:2px solid #2563eb;
+}
+
+.username{
+  font-weight:600;
+  font-size:16px;
 }
 
 .logout{
@@ -79,12 +95,6 @@ button{
   cursor:pointer;
 }
 
-.results p{
-  padding:12px;
-  border-bottom:1px solid rgba(255,255,255,0.05);
-  cursor:pointer;
-}
-
 .chat-area{
   flex:1;
   overflow-y:auto;
@@ -99,16 +109,10 @@ button{
   display:flex;
   align-items:flex-end;
   gap:8px;
-  max-width:100%;
 }
 
-.me{
-  justify-content:flex-end;
-}
-
-.other{
-  justify-content:flex-start;
-}
+.me{ justify-content:flex-end; }
+.other{ justify-content:flex-start; }
 
 .avatar{
   width:34px;
@@ -155,13 +159,8 @@ button{
   display:flex;
   gap:8px;
   padding:12px;
-  padding-bottom:calc(12px + env(safe-area-inset-bottom));
   background:rgba(2,6,23,0.97);
   border-top:1px solid rgba(255,255,255,0.05);
-}
-
-.input-area input{
-  flex:1;
 }
 </style>
 </head>
@@ -169,7 +168,11 @@ button{
 
 <div class="app">
   <div class="header">
-    <span id="userLabel">Chat</span>
+    <div class="profile">
+      <img id="myPP" class="my-avatar" onclick="openPPUpload()">
+      <div class="username" id="userLabel"></div>
+      <input type="file" id="ppInput" accept="image/*" capture="user" style="display:none">
+    </div>
     <div class="logout" onclick="logout()">Logout</div>
   </div>
 
@@ -194,6 +197,7 @@ const socket = io(API);
 
 let currentUser = localStorage.getItem("chat_user");
 let currentTarget = localStorage.getItem("chat_target") || "";
+let userPP = JSON.parse(localStorage.getItem("user_pp") || "{}");
 
 if(!currentUser){
   window.location.href = "login.html";
@@ -201,11 +205,34 @@ if(!currentUser){
 
 userLabel.innerText = "@" + currentUser;
 
-// AUTO RESTORE TARGET SETELAH REFRESH
-if(currentTarget){
-  target.value = currentTarget;
-  loadHistory();
+// LOAD PP SENDIRI SAAT MASUK
+function loadMyPP(){
+  if(userPP[currentUser]){
+    myPP.src = userPP[currentUser];
+  }else{
+    myPP.src = "https://i.imgur.com/6VBx3io.png";
+  }
 }
+loadMyPP();
+
+// BUKA GALERI / KAMERA
+function openPPUpload(){
+  document.getElementById("ppInput").click();
+}
+
+// UPLOAD PP
+ppInput.onchange = function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    userPP[currentUser] = ev.target.result;
+    localStorage.setItem("user_pp", JSON.stringify(userPP));
+    loadMyPP();
+  };
+  reader.readAsDataURL(file);
+};
 
 socket.on("connect", () => {
   socket.emit("join", currentUser);
@@ -217,7 +244,6 @@ function logout(){
   window.location.href = "login.html";
 }
 
-// WIB AKURAT
 function formatWIB(date){
   if(!date) return "";
   return new Intl.DateTimeFormat("id-ID",{
@@ -228,9 +254,10 @@ function formatWIB(date){
   }).format(new Date(date)) + " WIB";
 }
 
-// AVATAR GENERATOR (AGAR PP TERLIHAT ANTAR USER)
-function getAvatar(username){
-  return `https://ui-avatars.com/api/?name=${username}&background=2563eb&color=fff&size=128`;
+// AMBIL PP USER (AGAR TERLIHAT ANTAR USER)
+function getUserPP(username){
+  const allPP = JSON.parse(localStorage.getItem("user_pp") || "{}");
+  return allPP[username] || "https://i.imgur.com/6VBx3io.png";
 }
 
 function createMessage(data){
@@ -241,7 +268,7 @@ function createMessage(data){
 
   const avatar = document.createElement("img");
   avatar.className = "avatar";
-  avatar.src = getAvatar(data.sender);
+  avatar.src = getUserPP(data.sender);
 
   const wrap = document.createElement("div");
   wrap.className = "bubble-wrap";
@@ -265,38 +292,24 @@ function createMessage(data){
     wrap.appendChild(meta);
   }
 
-  if(!isMe){
-    row.appendChild(avatar);
-  }
-
+  if(!isMe) row.appendChild(avatar);
   row.appendChild(wrap);
-
-  if(isMe){
-    row.appendChild(avatar);
-  }
+  if(isMe) row.appendChild(avatar);
 
   chat.appendChild(row);
   chat.scrollTop = chat.scrollHeight;
 }
 
-// FIX: HISTORY TIDAK HILANG SAAT REFRESH
 async function loadHistory(){
   if(!currentTarget) return;
-
   chat.innerHTML = "";
 
-  try{
-    const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
-    const messages = await res.json();
+  const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
+  const messages = await res.json();
 
-    messages.forEach(msg=>{
-      createMessage(msg);
-    });
-
-    chat.scrollTop = chat.scrollHeight;
-  }catch(e){
-    console.log("Load history error", e);
-  }
+  messages.forEach(msg=>{
+    createMessage(msg);
+  });
 }
 
 async function search(){
@@ -310,10 +323,7 @@ async function search(){
 function selectUser(u){
   currentTarget = u;
   target.value = u;
-
-  // SIMPAN TARGET AGAR TIDAK HILANG SAAT REFRESH
   localStorage.setItem("chat_target", u);
-
   loadHistory();
 }
 
@@ -333,7 +343,6 @@ function send(){
 }
 
 socket.on("receive_message",(data)=>{
-  // HANYA TAMPILKAN JIKA CHAT SEDANG DIBUKA
   if(currentTarget === data.sender || currentTarget === data.receiver){
     createMessage(data);
   }
@@ -346,6 +355,12 @@ socket.on("message_read",(data)=>{
     el.innerText = "✓✓ Dibaca " + formatWIB(data.readAt);
   }
 });
+
+// AUTO LOAD HISTORY SETELAH REFRESH
+if(currentTarget){
+  target.value = currentTarget;
+  loadHistory();
+}
 </script>
 
 </body>
