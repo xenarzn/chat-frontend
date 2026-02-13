@@ -1,95 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login - XENZDOCHAT</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:'Inter',sans-serif;
-}
+  :root {
+    --bg-liquid: radial-gradient(circle at top left, #0f172a, #020617);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --primary-glass: linear-gradient(135deg, rgba(37, 99, 235, 0.7), rgba(29, 78, 216, 0.4));
+    --liquid-blue: rgba(37, 99, 235, 0.5);
+  }
 
-body{
-  height:100vh;
-  background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:white;
-  overflow:hidden;
-}
+  *{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Plus Jakarta Sans', sans-serif;
+  }
 
-body::before{
-  content:"";
-  position:fixed;
-  width:200%;
-  height:200%;
-  background: radial-gradient(circle, rgba(37,99,235,0.15) 1px, transparent 1px);
-  background-size:80px 80px;
-  animation:float 30s linear infinite;
-}
+  body {
+    height: 100dvh;
+    background: var(--bg-liquid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    overflow: hidden;
+    background-attachment: fixed;
+  }
 
-@keyframes float{
-  from{transform:translate(0,0);}
-  to{transform:translate(-200px,-200px);}
-}
+  /* Animasi Background Orb */
+  body::before {
+    content: "";
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
+    filter: blur(50px);
+    z-index: -1;
+    animation: moveOrb 15s infinite alternate ease-in-out;
+  }
 
-.card{
-  width:100%;
-  max-width:380px;
-  background:rgba(2,6,23,0.8);
-  backdrop-filter:blur(20px);
-  border-radius:20px;
-  padding:28px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.4);
-}
+  @keyframes moveOrb {
+    from { transform: translate(-50%, -50%); }
+    to { transform: translate(50%, 50%); }
+  }
 
-h1{
-  text-align:center;
-  font-size:22px;
-  margin-bottom:6px;
-}
+  .card {
+    width: 100%;
+    max-width: 400px;
+    background: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--liquid-blue);
+    border-radius: 28px;
+    padding: 35px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    margin: 20px;
+  }
 
-input{
-  padding:12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,0.05);
-  background:#1e293b;
-  color:white;
-  outline:none;
-}
+  h1 {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 10px;
+    background: linear-gradient(to right, #fff, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 
-input:focus{
-  border:1px solid #2563eb;
-}
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #38bdf8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 10px;
+  }
 
-button{
-  padding:12px;
-  border-radius:14px;
-  border:none;
-  background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:white;
-  font-weight:600;
-  cursor:pointer;
-  transition:0.2s;
-}
+  input {
+    padding: 14px 18px;
+    border-radius: 15px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    outline: none;
+    transition: 0.3s;
+    font-size: 14px;
+  }
 
-button:active{
-  transform:scale(0.97);
-}
+  input:focus {
+    border-color: var(--liquid-blue);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.2);
+  }
 
-.divider{
-  text-align:center;
-  font-size:12px;
-  opacity:0.6;
-  margin:6px 0;
-}
+  button {
+    padding: 14px;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--primary-glass);
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 15px;
+    margin-top: 5px;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+    filter: brightness(1.2);
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: 0.4;
+    margin: 15px 0;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .divider:not(:empty)::before { margin-right: 15px; }
+  .divider:not(:empty)::after { margin-left: 15px; }
+
 </style>
 </head>
 <body>
@@ -97,15 +151,16 @@ button:active{
 <div class="card">
   <h1>XENZDOCHAT</h1>
 
-  <input id="regUser" placeholder="Create Username">
-  <input id="regPass" type="password" placeholder="Create Password">
-  <button onclick="register()">Register</button>
+  <div class="section-title">Baru di sini?</div>
+  <input id="regUser" placeholder="Pilih Username">
+  <input id="regPass" type="password" placeholder="Buat Kata Sandi">
+  <button onclick="register()">Daftar Akun</button>
 
-  <div class="divider">Already have account</div>
+  <div class="divider">Atau masuk</div>
 
   <input id="logUser" placeholder="Username">
   <input id="logPass" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
+  <button onclick="login()">Masuk Sekarang</button>
 </div>
 
 <script>
@@ -116,25 +171,24 @@ async function register(){
   const password = regPass.value.trim();
 
   if(!username || !password){
-    alert("Fill all fields");
+    alert("Semua kolom harus diisi!");
     return;
   }
 
-  const res = await fetch(API + "/register",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username,password})
-  });
-
-  const data = await res.json();
-
-  if(data.success){
-    alert("Register success, now login");
-    regUser.value = "";
-    regPass.value = "";
-  }else{
-    alert(data.message || "Username already used");
-  }
+  try {
+    const res = await fetch(API + "/register",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username,password})
+    });
+    const data = await res.json();
+    if(data.success){
+      alert("Registrasi Berhasil! Silakan login.");
+      regUser.value = ""; regPass.value = "";
+    } else {
+      alert(data.message || "Username sudah terpakai.");
+    }
+  } catch(e) { alert("Server sedang sibuk."); }
 }
 
 async function login(){
@@ -142,32 +196,32 @@ async function login(){
   const password = logPass.value.trim();
 
   if(!username || !password){
-    alert("Fill all fields");
+    alert("Masukkan username dan password!");
     return;
   }
 
-  const res = await fetch(API + "/login",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username,password})
-  });
+  try {
+    const res = await fetch(API + "/login",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username,password})
+    });
+    const data = await res.json();
+    if(data.success){
+      localStorage.setItem("chat_user", username);
+      let userPP = JSON.parse(localStorage.getItem("user_pp") || "{}");
+      userPP[username] = data.profilePicture;
+      localStorage.setItem("user_pp", JSON.stringify(userPP));
+      window.location.href = "chat.html";
+    } else {
+      alert("Gagal Masuk: Username atau Password salah.");
+    }
+  } catch(e) { alert("Gagal terhubung ke server."); }
+}
 
-  const data = await res.json();
-
-  if(data.success){
-    // SIMPAN USER LOGIN
-    localStorage.setItem("chat_user", username);
-
-    // SIMPAN PROFILE PICTURE GLOBAL (PENTING AGAR PP MUNCUL DI CHAT)
-    let userPP = JSON.parse(localStorage.getItem("user_pp") || "{}");
-    userPP[username] = data.profilePicture;
-    localStorage.setItem("user_pp", JSON.stringify(userPP));
-
-    // ARAHKAN KE CHAT
-    window.location.href = "chat.html";
-  }else{
-    alert("Login failed: username atau password salah");
-  }
+// Auto Redirect jika sudah login
+if(localStorage.getItem("chat_user")) {
+  window.location.href = "chat.html";
 }
 </script>
 
