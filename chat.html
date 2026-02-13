@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XENZDOCHAT - ULTIMATE LIQUID GLASS</title>
+    <title>XENZDOCHAT - ULTIMATE FINAL</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -32,7 +32,7 @@
         }
         .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--liquid-blue); box-shadow: 0 0 10px var(--liquid-blue); }
         
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; transition: 0.3s; }
         .online-dot { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
         .offline-dot { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
@@ -57,25 +57,24 @@
         .btn-logout {
             width: 100%; padding: 12px; background: rgba(239, 68, 68, 0.1); 
             color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); 
-            border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 10px;
+            border-radius: 12px; cursor: pointer; font-weight: 700; margin-top: 10px; transition: 0.3s;
         }
+        .btn-logout:hover { background: rgba(239, 68, 68, 0.3); }
 
         /* --- CHAT AREA --- */
         .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-        .message-row { display: flex; flex-direction: column; max-width: 85%; animation: slideIn 0.3s ease; position: relative; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
+        .message-row { display: flex; flex-direction: column; max-width: 85%; position: relative; }
         .me { align-self: flex-end; }
         .other { align-self: flex-start; }
 
         .bubble { 
             padding: 12px 16px; border-radius: 20px; font-size: 14.5px; backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border); position: relative; cursor: pointer;
+            border: 1px solid var(--glass-border); position: relative;
         }
         .me .bubble { background: var(--primary-glass); border-bottom-right-radius: 4px; }
         .other .bubble { background: rgba(255, 255, 255, 0.07); border-bottom-left-radius: 4px; }
 
-        /* --- INPUT --- */
+        /* --- INPUT AREA --- */
         .input-area { padding: 15px; background: rgba(2, 6, 23, 0.5); backdrop-filter: blur(25px); border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
         #message { flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; }
         .btn-action { width: 45px; height: 45px; border-radius: 50%; border: none; cursor: pointer; color: white; background: var(--primary-glass); display: flex; align-items: center; justify-content: center; }
@@ -94,11 +93,11 @@
             <h3 id="uNameDisplay" style="margin-top:8px; font-size:16px;"></h3>
         </div>
         
-        <input id="searchInput" placeholder="Cari username..." style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:white; border-radius:10px; margin-top:15px; outline:none;" onkeypress="handleSearch(event)">
+        <input id="searchInput" placeholder="Cari teman..." style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:white; border-radius:10px; margin-top:15px; outline:none;" onkeypress="handleSearch(event)">
         
         <div id="historyList"></div>
 
-        <button class="btn-logout" onclick="logout()">Logout</button>
+        <button class="btn-logout" onclick="logout()">🚪 Logout Akun</button>
         <button onclick="toggleSidebar()" style="background:none; border:none; color:#64748b; margin-top:10px; cursor:pointer;">Tutup</button>
     </div>
 
@@ -107,9 +106,9 @@
         <img id="targetPP" class="avatar" src="https://ui-avatars.com/api/?name=?">
         <div style="flex:1">
             <div id="targetLabel" style="font-weight:bold; font-size:15px;">XENZDOCHAT</div>
-            <div style="display:flex; align-items:center; font-size:11px;">
+            <div style="display:flex; align-items:center; font-size:11px; gap:6px;">
                 <span id="statusDot" class="status-dot"></span>
-                <span id="statusText">Pilih teman</span>
+                <span id="statusText" style="color:#94a3b8;">Pilih teman</span>
             </div>
         </div>
     </div>
@@ -131,28 +130,54 @@
     
     let currentUser = localStorage.getItem("chat_user");
     let currentTarget = localStorage.getItem("chat_target") || "";
-    
-    // Perbaikan: History diambil dari localStorage, jika kosong inisialisasi array kosong
     let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
+    let isRec = false; let rec; let chunks = [];
 
     if(!currentUser) window.location.href="index.html";
 
-    // --- RECOVERY HISTORY DARI SERVER ---
+    // --- STATUS UI (Dot Hijau/Merah) ---
+    function updateStatusUI(status) {
+        const dot = document.getElementById("statusDot");
+        const txt = document.getElementById("statusText");
+        
+        if (!currentTarget) {
+            dot.className = "status-dot";
+            txt.innerText = "Pilih teman";
+            return;
+        }
+
+        if (status === "online") {
+            dot.className = "status-dot online-dot";
+            txt.innerText = "Online";
+            txt.style.color = "#22c55e";
+        } else {
+            dot.className = "status-dot offline-dot";
+            txt.innerText = "Offline";
+            txt.style.color = "#94a3b8";
+        }
+    }
+
+    // --- HISTORY RECOVERY ---
     async function recoverHistoryFromServer() {
         try {
-            // Kita coba fetch semua pesan terakhir user untuk mencari siapa saja yang pernah chat
             const res = await fetch(`${API}/messages/all/${currentUser}`);
             const data = await res.json();
-            
-            // Ambil daftar unik username lawan bicara
             const uniqueUsers = [...new Set(data.map(m => m.sender === currentUser ? m.receiver : m.sender))];
-            
             if(uniqueUsers.length > 0) {
                 chatHistory = uniqueUsers;
                 localStorage.setItem("chat_history", JSON.stringify(chatHistory));
                 renderHistory();
             }
-        } catch (e) { console.log("Gagal mengambil history dari server"); }
+        } catch (e) { console.log("Gagal sinkron server"); }
+    }
+
+    async function loadMyProfile() {
+        try {
+            const res = await fetch(`${API}/user/${currentUser}`);
+            const data = await res.json();
+            document.getElementById("myPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${currentUser}`;
+            document.getElementById("uNameDisplay").innerText = "@" + currentUser;
+        } catch(e) {}
     }
 
     function toggleSidebar() { 
@@ -162,28 +187,22 @@
 
     async function renderHistory() {
         const list = document.getElementById("historyList");
-        list.innerHTML = chatHistory.length === 0 ? "<p style='text-align:center; opacity:0.5; margin-top:20px;'>Belum ada riwayat chat</p>" : "";
-        
+        list.innerHTML = "";
         for (const username of chatHistory) {
-            const res = await fetch(`${API}/user/${username}`);
-            const data = await res.json();
-            const pp = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
-            list.innerHTML += `
-                <div class="history-item" onclick="selectUser('${username}'); toggleSidebar();">
-                    <img src="${pp}" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--liquid-blue);">
-                    <div>
-                        <div style="font-weight:600; font-size:14px;">@${username}</div>
-                        <div style="font-size:10px; opacity:0.5;">Ketuk untuk mengobrol</div>
-                    </div>
-                </div>`;
+            try {
+                const res = await fetch(`${API}/user/${username}`);
+                const data = await res.json();
+                const pp = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
+                list.innerHTML += `
+                    <div class="history-item" onclick="selectUser('${username}'); toggleSidebar();">
+                        <img src="${pp}" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--liquid-blue);">
+                        <div>
+                            <div style="font-weight:600; font-size:14px;">@${username}</div>
+                            <div style="font-size:10px; opacity:0.5;">Klik untuk chat</div>
+                        </div>
+                    </div>`;
+            } catch(e) {}
         }
-    }
-
-    function handleSearch(e) { 
-        if(e.key === "Enter") { 
-            const u = e.target.value.trim();
-            if(u) { selectUser(u); e.target.value=""; toggleSidebar(); }
-        } 
     }
 
     async function selectUser(u) {
@@ -191,7 +210,6 @@
         currentTarget = u;
         localStorage.setItem("chat_target", u);
         
-        // Update History Local
         chatHistory = [u, ...chatHistory.filter(n => n !== u)].slice(0, 15);
         localStorage.setItem("chat_history", JSON.stringify(chatHistory));
 
@@ -200,12 +218,12 @@
         document.getElementById("targetLabel").innerText = "@" + u;
         document.getElementById("targetPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${u}`;
         
+        updateStatusUI(data?.status);
         loadHistory();
     }
 
     async function loadHistory() {
         if(!currentTarget) return;
-        chat.innerHTML = "<p style='text-align:center; opacity:0.3;'>Memuat pesan...</p>";
         const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
         const msgs = await res.json();
         chat.innerHTML = "";
@@ -217,19 +235,8 @@
         const isMe = data.sender === currentUser;
         const row = document.createElement("div");
         row.className = `message-row ${isMe ? 'me' : 'other'}`;
-        
-        let content = data.type === "audio" 
-            ? `<audio controls src="${data.message}"></audio>` 
-            : `<span>${data.message}</span>`;
-
-        row.innerHTML = `
-            <div class="bubble">
-                ${content}
-                <div class="meta">
-                    ${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} 
-                    ${isMe ? `<span class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : ''}
-                </div>
-            </div>`;
+        let content = data.type === "audio" ? `<audio controls src="${data.message}"></audio>` : `<span>${data.message}</span>`;
+        row.innerHTML = `<div class="bubble">${content}<div class="meta">${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${isMe ? `<span class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : ''}</div></div>`;
         chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
     }
@@ -252,33 +259,48 @@
                     const reader = new FileReader();
                     reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
                     reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
+                    stream.getTracks().forEach(t => t.stop());
                 };
                 rec.start(); isRec = true; btn.innerHTML = "⏹"; btn.style.color = "#ef4444";
-            } catch(e) { alert("Izinkan Mic!"); }
+            } catch(e) { alert("Mic ditolak"); }
         } else { rec.stop(); isRec = false; btn.innerHTML = "🎤"; btn.style.color = "white"; }
     }
 
     function logout() {
-        localStorage.clear();
-        window.location.href = "https://chat-frontend-ten-eta.vercel.app";
+        if(confirm("Logout dari akun?")) {
+            localStorage.clear();
+            window.location.href = "https://chat-frontend-ten-eta.vercel.app";
+        }
     }
 
+    function handleSearch(e) { 
+        if(e.key === "Enter") { 
+            const u = e.target.value.trim();
+            if(u) { selectUser(u); e.target.value=""; toggleSidebar(); }
+        } 
+    }
+
+    // --- SOCKETS ---
     socket.on("receive_message", d => { 
         if(d.sender === currentTarget || d.sender === currentUser) createMessage(d);
-        // Tambahkan ke history jika orang baru chat
         if(!chatHistory.includes(d.sender) && d.sender !== currentUser) {
             chatHistory.unshift(d.sender);
             localStorage.setItem("chat_history", JSON.stringify(chatHistory));
         }
     });
 
-    socket.on("connect", () => {
-        socket.emit("join", currentUser);
-        recoverHistoryFromServer(); // Coba ambil history dari server saat konek
+    socket.on("user_status", data => {
+        if (data.username === currentTarget) updateStatusUI(data.status);
     });
 
+    socket.on("connect", () => {
+        socket.emit("join", currentUser);
+        recoverHistoryFromServer();
+    });
+
+    loadMyProfile();
     if(currentTarget) selectUser(currentTarget);
-    recoverHistoryFromServer();
 </script>
 </body>
-</html>
+    </html>
+                    
