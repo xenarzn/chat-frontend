@@ -18,6 +18,7 @@ body{
   background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%);
   color:white;
   height:100dvh;
+  overflow:hidden;
 }
 
 .app{
@@ -26,7 +27,7 @@ body{
   height:100dvh;
   display:flex;
   flex-direction:column;
-  background:rgba(2,6,23,0.9);
+  background:rgba(2,6,23,0.92);
   backdrop-filter:blur(20px);
 }
 
@@ -41,7 +42,7 @@ body{
   position:sticky;
   top:0;
   z-index:10;
-  background:rgba(2,6,23,0.9);
+  background:rgba(2,6,23,0.95);
 }
 
 .logout{
@@ -90,7 +91,7 @@ button{
   flex:1;
   overflow-y:auto;
   padding:16px;
-  padding-bottom:90px;
+  padding-bottom:120px;
   display:flex;
   flex-direction:column;
   gap:10px;
@@ -125,15 +126,19 @@ button{
 .read{color:#22c55e;}
 
 .input-area{
-  position:sticky;
+  position:fixed;
   bottom:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:100%;
+  max-width:480px;
   display:flex;
   gap:8px;
   padding:12px;
-  padding-bottom:calc(12px + env(safe-area-inset-bottom));
-  background:rgba(2,6,23,0.95);
-  backdrop-filter:blur(10px);
-  border-top:1px solid rgba(255,255,255,0.05);
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  background:rgba(2,6,23,0.98);
+  backdrop-filter:blur(12px);
+  border-top:1px solid rgba(255,255,255,0.06);
 }
 
 .input-area input{
@@ -142,6 +147,9 @@ button{
 
 @media (max-width:480px){
   .app{
+    max-width:100%;
+  }
+  .input-area{
     max-width:100%;
   }
 }
@@ -191,12 +199,15 @@ function logout(){
   window.location.href = "login.html";
 }
 
-// FORMAT WAKTU WIB (GMT+7)
+// FORMAT WAKTU WIB AKURAT (TIDAK DOUBLE OFFSET)
 function formatWIB(date){
   if(!date) return "";
-  const d = new Date(date);
-  const wib = new Date(d.getTime() + (7*60*60*1000));
-  return wib.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) + " WIB";
+  return new Intl.DateTimeFormat("id-ID",{
+    timeZone:"Asia/Jakarta",
+    hour:"2-digit",
+    minute:"2-digit",
+    hour12:false
+  }).format(new Date(date)) + " WIB";
 }
 
 function createBubble(data,isMe){
@@ -212,7 +223,7 @@ function createBubble(data,isMe){
   if(isMe){
     const status = document.createElement("div");
     status.className = "status sent";
-    status.id = "msg-"+data._id;
+    status.id = "msg-"+(data._id || Date.now());
     status.innerText = "✓ Terkirim";
     wrap.appendChild(status);
   }
@@ -222,24 +233,29 @@ function createBubble(data,isMe){
 }
 
 async function search(){
-  const res = await fetch(API + "/search/" + searchUser.value);
+  const keyword = searchUser.value.trim();
+  if(!keyword) return;
+
+  const res = await fetch(API + "/search/" + keyword);
   const users = await res.json();
+
   results.innerHTML = users.map(u =>
-    `<p onclick="selectUser('${u.username}')">${u.username}</p>`
+    `<p onclick="selectUser('${u.username}')">@${u.username}</p>`
   ).join("");
 }
 
 function selectUser(u){
   target.value = u;
+  results.innerHTML = "";
 }
 
 function send(){
-  if(!target.value || !message.value) return;
+  if(!target.value || !message.value.trim()) return;
 
   const data = {
     sender: currentUser,
     receiver: target.value,
-    message: message.value
+    message: message.value.trim()
   };
 
   socket.emit("send_message", data);
@@ -261,6 +277,13 @@ socket.on("message_read",(data)=>{
   if(el){
     el.className="status read";
     el.innerText="✓✓ Dibaca " + formatWIB(data.readAt);
+  }
+});
+
+// ENTER TO SEND (MOBILE FRIENDLY)
+message.addEventListener("keypress",(e)=>{
+  if(e.key==="Enter"){
+    send();
   }
 });
 </script>
