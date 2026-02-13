@@ -6,54 +6,71 @@
     <title>XENZDOCHAT</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #020617; color: white; height: 100dvh; overflow: hidden; }
         .app { max-width: 480px; margin: auto; height: 100%; display: flex; flex-direction: column; position: relative; background: #020617; }
         
         /* Sidebar */
-        .sidebar { position: absolute; left: -100%; width: 80%; height: 100%; background: #0f172a; z-index: 100; transition: 0.3s; padding: 20px; }
+        .sidebar { position: absolute; left: -100%; width: 85%; height: 100%; background: #0f172a; z-index: 100; transition: 0.3s; padding: 20px; box-shadow: 10px 0 20px rgba(0,0,0,0.5); }
         .sidebar.active { left: 0; }
-        .search-box { width: 100%; padding: 10px; background: #1e293b; border: none; color: white; border-radius: 8px; margin-bottom: 20px; }
+        .search-box { width: 100%; padding: 12px; background: #1e293b; border: none; color: white; border-radius: 10px; margin-bottom: 20px; }
 
         /* Header */
-        .header { padding: 15px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #1e293b; }
+        .header { padding: 12px 16px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 12px; background: #020617; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #1e293b; border: 2px solid #2563eb; }
         .status { font-size: 11px; color: #94a3b8; }
         .online { color: #22c55e !important; }
 
-        /* Chat */
-        .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .message-row { display: flex; flex-direction: column; max-width: 80%; }
+        /* Chat Area */
+        .chat-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
+        .message-row { display: flex; flex-direction: column; max-width: 85%; position: relative; }
         .me { align-self: flex-end; align-items: flex-end; }
         .other { align-self: flex-start; }
-        .bubble { padding: 10px 15px; border-radius: 15px; font-size: 14px; background: #1e293b; }
-        .me .bubble { background: #2563eb; }
-        .meta { font-size: 10px; margin-top: 4px; color: #94a3b8; display: flex; gap: 5px; }
+        
+        .bubble { padding: 10px 14px; border-radius: 18px; font-size: 14px; background: #1e293b; position: relative; cursor: pointer; transition: 0.2s; word-wrap: break-word; }
+        .me .bubble { background: #2563eb; border-bottom-right-radius: 4px; }
+        .other .bubble { background: #334155; border-bottom-left-radius: 4px; }
+        .bubble:active { transform: scale(0.98); }
+
+        /* Action Menu */
+        .action-menu { position: absolute; top: -40px; right: 0; display: none; background: #0f172a; border: 1px solid #334155; border-radius: 8px; z-index: 50; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .action-menu button { padding: 8px 12px; border: none; background: none; color: white; font-size: 11px; cursor: pointer; }
+        .action-menu button:hover { background: #2563eb; }
+
+        .meta { font-size: 10px; margin-top: 4px; color: #94a3b8; display: flex; align-items: center; gap: 5px; }
         .read-tick { color: #38bdf8; font-weight: bold; }
+        .edited-label { font-size: 9px; font-style: italic; opacity: 0.6; }
 
         /* Input */
-        .input-area { padding: 15px; display: flex; gap: 10px; background: #0f172a; }
-        #message { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #1e293b; color: white; outline: none; }
-        .btn { background: #2563eb; border: none; color: white; padding: 10px 15px; border-radius: 50%; cursor: pointer; }
+        .input-area { padding: 12px; display: flex; gap: 10px; background: #0f172a; align-items: center; }
+        #message { flex: 1; padding: 12px 16px; border-radius: 24px; border: none; background: #1e293b; color: white; outline: none; }
+        .btn { background: #2563eb; border: none; color: white; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        #historyList div { padding: 12px; border-radius: 8px; margin-bottom: 5px; transition: 0.2s; cursor: pointer; }
+        #historyList div:hover { background: #1e293b; }
+        audio { height: 35px; width: 180px; }
     </style>
 </head>
 <body>
 
 <div class="app">
     <div id="sidebar" class="sidebar">
-        <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:70px; height:70px; border-radius:50%; margin-bottom:10px; cursor:pointer">
-        <input type="file" id="ppInput" hidden accept="image/*" onchange="uploadPP(this)">
-        <h4 id="uNameDisplay" style="margin-bottom:20px"></h4>
-        <input type="text" class="search-box" placeholder="Cari username..." onkeypress="handleSearch(event)">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:80px; height:80px; border-radius:50%; border:3px solid #2563eb; cursor:pointer; object-fit:cover;">
+            <input type="file" id="ppInput" hidden accept="image/*" onchange="uploadPP(this)">
+            <h3 id="uNameDisplay" style="margin-top:10px;"></h3>
+        </div>
+        <input type="text" class="search-box" placeholder="Cari teman..." onkeypress="handleSearch(event)">
+        <p style="font-size: 11px; color: #64748b; margin-bottom: 10px; font-weight: bold;">RIWAYAT CHAT</p>
         <div id="historyList"></div>
-        <button onclick="toggleSidebar()" style="margin-top:20px; color:red; background:none; border:none">Tutup</button>
+        <button onclick="toggleSidebar()" style="margin-top:20px; color:#ef4444; background:none; border:none; cursor:pointer; font-weight:bold;">Tutup Menu</button>
     </div>
 
     <div class="header">
-        <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:20px">☰</button>
-        <img id="targetPP" class="avatar" src="">
+        <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">☰</button>
+        <img id="targetPP" class="avatar" src="https://ui-avatars.com/api/?name=User">
         <div>
-            <div id="targetLabel" style="font-weight:bold">Pilih Chat</div>
+            <div id="targetLabel" style="font-weight:bold; font-size:15px;">Pilih Chat</div>
             <div id="targetStatus" class="status">Offline</div>
         </div>
     </div>
@@ -61,8 +78,8 @@
     <div class="chat-area" id="chat"></div>
 
     <div class="input-area">
-        <button id="micBtn" class="btn" onclick="toggleRecording()">🎤</button>
-        <input id="message" placeholder="Ketik..." autocomplete="off">
+        <button id="micBtn" class="btn" onclick="toggleRecording()" style="background: #334155;">🎤</button>
+        <input id="message" placeholder="Ketik pesan..." autocomplete="off">
         <button class="btn" onclick="send()">➤</button>
     </div>
 </div>
@@ -72,26 +89,36 @@
     const socket = io(API);
     const chat = document.getElementById("chat");
     const messageInput = document.getElementById("message");
+    
     let currentUser = localStorage.getItem("chat_user");
     let currentTarget = localStorage.getItem("chat_target") || "";
     let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
+    let isRec = false; let rec; let chunks = [];
 
     if(!currentUser) window.location.href="login.html";
     document.getElementById("uNameDisplay").innerText = "@"+currentUser;
+
+    async function loadMyProfile() {
+        const res = await fetch(`${API}/user/${currentUser}`);
+        const data = await res.json();
+        document.getElementById("myPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${currentUser}`;
+    }
+    loadMyProfile();
 
     function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); if(document.getElementById("sidebar").classList.contains("active")) renderHistory(); }
     
     function renderHistory() {
         const list = document.getElementById("historyList");
-        list.innerHTML = chatHistory.map(u => `<div onclick="selectUser('${u}')" style="padding:10px; cursor:pointer">@${u}</div>`).join("");
+        list.innerHTML = chatHistory.map(u => `<div onclick="selectUser('${u}')">@${u}</div>`).join("");
     }
 
     function handleSearch(e) { if(e.key === "Enter") { selectUser(e.target.value); e.target.value=""; toggleSidebar(); } }
 
     async function selectUser(u) {
-        if(u === currentUser) return;
+        if(u === currentUser || !u) return;
         currentTarget = u; localStorage.setItem("chat_target", u);
         if(!chatHistory.includes(u)) { chatHistory.unshift(u); localStorage.setItem("chat_history", JSON.stringify(chatHistory)); }
+        
         const res = await fetch(`${API}/user/${u}`);
         const data = await res.json();
         document.getElementById("targetLabel").innerText = "@"+u;
@@ -111,16 +138,55 @@
         const isMe = data.sender === currentUser;
         const row = document.createElement("div");
         row.className = `message-row ${isMe ? 'me' : 'other'}`;
+        row.id = `row-${data._id}`;
         
-        let content = data.type === "audio" ? `<audio src="${data.message}" controls></audio>` : data.message;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.id = `bubble-${data._id}`;
+
+        const textSpan = document.createElement("span");
+        textSpan.id = `text-${data._id}`;
+        
+        if(data.type === "audio"){
+            const audio = document.createElement("audio");
+            audio.src = data.message; audio.controls = true;
+            bubble.appendChild(audio);
+        } else {
+            textSpan.innerText = data.message;
+            bubble.appendChild(textSpan);
+        }
+
+        // Action Menu (Edit & Hapus)
+        if(isMe && data.type !== "audio") {
+            const menu = document.createElement("div");
+            menu.className = "action-menu";
+            menu.id = `menu-${data._id}`;
+            menu.innerHTML = `<button onclick="editMsg('${data._id}')">Edit</button><button onclick="deleteMsg('${data._id}')" style="color:#ef4444">Hapus</button>`;
+            bubble.appendChild(menu);
+            bubble.onclick = (e) => {
+                e.stopPropagation();
+                const isVis = menu.style.display === "block";
+                document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
+                menu.style.display = isVis ? "none" : "block";
+            };
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const time = new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         let ticks = isMe ? `<span id="tick-${data._id}" class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : "";
         
-        row.innerHTML = `<div class="bubble">${content}</div><div class="meta">${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${ticks}</div>`;
-        chat.appendChild(row); chat.scrollTop = chat.scrollHeight;
+        meta.innerHTML = `${time} <span id="ed-${data._id}" class="edited-label">${data.read === 'edited' ? '(diedit)' : ''}</span> ${ticks}`;
+        
+        const wrap = document.createElement("div");
+        wrap.appendChild(bubble); wrap.appendChild(meta);
+        row.appendChild(wrap); chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
 
         if(!isMe && !data.read) socket.emit("read_message", { messageId: data._id, sender: data.sender });
     }
 
+    // Messaging Logic
     function send() {
         const val = messageInput.value.trim();
         if(!val || !currentTarget) return;
@@ -128,17 +194,30 @@
         messageInput.value = "";
     }
 
-    // Status & Typing
+    window.editMsg = (id) => {
+        const old = document.getElementById(`text-${id}`).innerText;
+        const n = prompt("Edit pesan:", old);
+        if(n && n !== old) socket.emit("edit_message", { messageId: id, newMessage: n, receiver: currentTarget });
+    };
+
+    window.deleteMsg = (id) => { if(confirm("Hapus pesan ini?")) socket.emit("delete_message", { messageId: id, receiver: currentTarget }); };
+
+    // Socket Listeners
     socket.on("connect", () => socket.emit("join", currentUser));
+    socket.on("receive_message", d => { if(currentTarget === d.sender || currentTarget === d.receiver) createMessage(d); });
+    socket.on("message_read", d => { const t = document.getElementById(`tick-${d.messageId}`); if(t) { t.innerText = "✓✓"; t.classList.add("read-tick"); } });
+    socket.on("message_edited", d => {
+        const txt = document.getElementById(`text-${d.messageId}`);
+        if(txt) { txt.innerText = d.newMessage; document.getElementById(`ed-${d.messageId}`).innerText = "(diedit)"; }
+    });
+    socket.on("message_deleted", id => { const r = document.getElementById(`row-${id}`); if(r) r.remove(); });
+    
     socket.on("user_status", d => { if(d.username === currentTarget) { document.getElementById("targetStatus").innerText = d.status === "online" ? "Online" : "Offline"; document.getElementById("targetStatus").className = "status " + (d.status === "online" ? "online" : ""); } });
     socket.on("display_typing", d => { if(d.sender === currentTarget) document.getElementById("targetStatus").innerText = d.isTyping ? "Sedang mengetik..." : "Online"; });
-    socket.on("message_read", d => { const t = document.getElementById(`tick-${d.messageId}`); if(t) { t.innerText = "✓✓"; t.classList.add("read-tick"); } });
-    socket.on("receive_message", d => { if(currentTarget === d.sender || currentTarget === d.receiver) createMessage(d); });
 
     messageInput.oninput = () => { socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: true }); clearTimeout(window.tT); window.tT = setTimeout(() => socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false }), 2000); };
 
-    // VN Logic
-    let rec; let chunks = [];
+    // VN & Upload PP
     async function toggleRecording() {
         if(!isRec) {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -149,10 +228,9 @@
                 reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
                 reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
             };
-            rec.start(); isRec = true; document.getElementById("micBtn").style.color = "red";
-        } else { rec.stop(); isRec = false; document.getElementById("micBtn").style.color = "white"; }
+            rec.start(); isRec = true; document.getElementById("micBtn").style.background = "#ef4444";
+        } else { rec.stop(); isRec = false; document.getElementById("micBtn").style.background = "#334155"; }
     }
-    let isRec = false;
 
     async function uploadPP(input) {
         if(input.files[0]) {
@@ -165,6 +243,7 @@
         }
     }
 
+    document.addEventListener("click", () => document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none"));
     messageInput.addEventListener("keypress", (e) => { if(e.key === "Enter") send(); });
     if(currentTarget) selectUser(currentTarget);
 </script>
