@@ -105,13 +105,8 @@ button{
   font-size:14px;
 }
 
-.me .bubble{
-  background:#2563eb;
-}
-
-.other .bubble{
-  background:#1e293b;
-}
+.me .bubble{ background:#2563eb; }
+.other .bubble{ background:#1e293b; }
 
 .status{
   font-size:11px;
@@ -164,12 +159,18 @@ if(!currentUser){
 
 userLabel.innerText = "@" + currentUser;
 
+// WAJIB: join room agar bisa menerima DM
+socket.on("connect", () => {
+  socket.emit("join", currentUser);
+});
+
 function logout(){
   localStorage.removeItem("chat_user");
   window.location.href = "login.html";
 }
 
 function formatGMT7(date){
+  if(!date) return "";
   const d = new Date(date);
   const gmt7 = new Date(d.getTime() + (7*60*60*1000));
   return gmt7.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
@@ -188,7 +189,7 @@ function createBubble(data,isMe){
   if(isMe){
     const status = document.createElement("div");
     status.className = "status sent";
-    status.id = "msg-"+data.id;
+    status.id = "msg-"+data._id;
     status.innerText = "✓ Terkirim";
     wrap.appendChild(status);
   }
@@ -213,15 +214,12 @@ function send(){
   if(!target.value || !message.value) return;
 
   const data = {
-    id: Date.now().toString(),
     sender: currentUser,
     receiver: target.value,
-    message: message.value,
-    createdAt: new Date().toISOString()
+    message: message.value
   };
 
   socket.emit("send_message", data);
-  createBubble(data,true);
   message.value="";
 }
 
@@ -229,17 +227,16 @@ socket.on("receive_message",(data)=>{
   if(data.sender===currentUser || data.receiver===currentUser){
     createBubble(data,data.sender===currentUser);
 
-    if(data.receiver===currentUser){
-      socket.emit("message_read",{
-        messageId:data.id,
-        readAt:new Date().toISOString()
-      });
+    // Jika saya penerima, kirim read receipt ke server
+    if(data.receiver===currentUser && data._id){
+      socket.emit("read_message", data._id);
     }
   }
 });
 
-socket.on("message_read_update",(data)=>{
-  const el=document.getElementById("msg-"+data.messageId);
+// EVENT INI HARUS SAMA DENGAN BACKEND (message_read)
+socket.on("message_read",(data)=>{
+  const el=document.getElementById("msg-"+data._id);
   if(el){
     el.className="status read";
     el.innerText="✓✓ Dibaca "+formatGMT7(data.readAt)+" GMT+7";
