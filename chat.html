@@ -18,10 +18,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
         body { background: var(--bg-liquid); height: 100dvh; color: var(--text-main); overflow: hidden; background-attachment: fixed; }
 
-        /* Container Utama */
         .app { 
             max-width: 480px; margin: auto; height: 100%; display: flex; flex-direction: column; 
-            background: rgba(15, 23, 42, 0.4) !important; backdrop-filter: blur(30px) saturate(180%);
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(30px) saturate(180%);
             -webkit-backdrop-filter: blur(30px) saturate(180%);
             border: 1px solid var(--glass-border); position: relative;
         }
@@ -29,7 +28,7 @@
         /* --- HEADER --- */
         .header { 
             padding: 15px 20px; display: flex; align-items: center; gap: 12px;
-            background: rgba(2, 6, 23, 0.5) !important; backdrop-filter: blur(15px); border-bottom: 1px solid var(--glass-border);
+            background: rgba(2, 6, 23, 0.5); backdrop-filter: blur(15px); border-bottom: 1px solid var(--glass-border);
             z-index: 10;
         }
         .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--liquid-blue); box-shadow: 0 0 10px var(--liquid-blue); }
@@ -41,12 +40,15 @@
         /* --- SIDEBAR LIQUID GLASS --- */
         .sidebar { 
             position: absolute; left: -100%; width: 85%; height: 100%; 
-            background: rgba(15, 23, 42, 0.95) !important; backdrop-filter: blur(40px); 
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(40px); 
             z-index: 100; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 25px; 
             border-right: 1px solid var(--liquid-blue);
+            display: flex; flex-direction: column;
         }
         .sidebar.active { left: 0; }
         
+        #historyList { flex: 1; overflow-y: auto; margin-bottom: 20px; }
+
         .history-item { 
             display: flex; align-items: center; gap: 12px; padding: 12px;
             background: rgba(255, 255, 255, 0.03);
@@ -54,6 +56,15 @@
             border-radius: 15px; cursor: pointer; transition: 0.3s; margin-bottom: 12px;
         }
         .history-item:hover { background: rgba(37, 99, 235, 0.2); transform: translateX(5px); box-shadow: 0 0 15px var(--liquid-blue); }
+
+        /* Logout Button */
+        .btn-logout {
+            width: 100%; padding: 12px; background: rgba(239, 68, 68, 0.1); 
+            color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); 
+            border-radius: 12px; cursor: pointer; font-weight: 700; 
+            transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-logout:hover { background: rgba(239, 68, 68, 0.2); box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
 
         /* --- CHAT AREA --- */
         .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
@@ -76,18 +87,14 @@
             border-radius: 12px; backdrop-filter: blur(15px); z-index: 50;
         }
         .action-menu button { padding: 8px 15px; border: none; background: none; color: white; font-size: 11px; cursor: pointer; }
-        .action-menu button:hover { background: var(--liquid-blue); }
 
-        .reply-quote { background: rgba(0,0,0,0.3); border-left: 3px solid #38bdf8; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; }
-
-        /* --- INPUT AREA --- */
-        .input-area { padding: 15px; background: rgba(2, 6, 23, 0.5) !important; backdrop-filter: blur(25px); border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
+        /* --- INPUT & AUDIO --- */
+        .input-area { padding: 15px; background: rgba(2, 6, 23, 0.5); backdrop-filter: blur(25px); border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
         #message { flex: 1; padding: 12px 20px; border-radius: 25px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.05); color: white; outline: none; }
-        .btn-action { width: 45px; height: 45px; border-radius: 50%; border: none; cursor: pointer; color: white; background: var(--primary-glass); display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-
+        .btn-action { width: 45px; height: 45px; border-radius: 50%; border: none; cursor: pointer; color: white; background: var(--primary-glass); display: flex; align-items: center; justify-content: center; }
+        
         .meta { font-size: 10px; color: #94a3b8; margin-top: 4px; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
         .read-tick { color: #38bdf8; font-weight: bold; }
-
         audio { height: 35px; width: 180px; filter: invert(100%) hue-rotate(180deg) brightness(1.5); }
     </style>
 </head>
@@ -95,14 +102,20 @@
 
 <div class="app">
     <div id="sidebar" class="sidebar">
-        <div style="text-align:center; margin-bottom:30px;">
-            <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:90px; height:90px; border-radius:50%; border:3px solid var(--liquid-blue); cursor:pointer; object-fit:cover;">
+        <div style="text-align:center; margin-bottom:20px;">
+            <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:80px; height:80px; border-radius:50%; border:3px solid var(--liquid-blue); cursor:pointer; object-fit:cover;">
             <input type="file" id="ppInput" hidden accept="image/*" onchange="uploadPP(this)">
-            <h3 id="uNameDisplay" style="margin-top:15px;"></h3>
+            <h3 id="uNameDisplay" style="margin-top:10px;"></h3>
         </div>
-        <input id="searchInput" placeholder="Cari teman..." style="width:100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:white; border-radius:10px; margin-bottom:20px; outline:none;" onkeypress="handleSearch(event)">
+        
+        <input id="searchInput" placeholder="Cari teman..." style="width:100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:white; border-radius:10px; margin-bottom:15px; outline:none;" onkeypress="handleSearch(event)">
+        
         <div id="historyList"></div>
-        <button onclick="toggleSidebar()" style="width:100%; margin-top:20px; padding:12px; background:rgba(239, 68, 68, 0.1); color:#ef4444; border:none; border-radius:10px; cursor:pointer;">Tutup</button>
+
+        <button class="btn-logout" onclick="logout()">
+            <span>🚪</span> Keluar Akun
+        </button>
+        <button onclick="toggleSidebar()" style="width:100%; margin-top:10px; padding:10px; background:none; color:#64748b; border:none; cursor:pointer; font-size:12px;">Tutup</button>
     </div>
 
     <div class="header">
@@ -118,16 +131,6 @@
     </div>
 
     <div class="chat-area" id="chat"></div>
-
-    <div id="replyIndicator" style="display:none; padding:12px 20px; background:rgba(255,255,255,0.05); border-top:2px solid var(--liquid-blue);">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="overflow:hidden;">
-                <small id="replyUser" style="color:#38bdf8; font-weight:bold;"></small>
-                <p id="replyPreview" style="font-size:11px; opacity:0.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></p>
-            </div>
-            <button onclick="cancelReply()" style="background:none; border:none; color:white; cursor:pointer;">✕</button>
-        </div>
-    </div>
 
     <div class="input-area">
         <button id="micBtn" class="btn-action" onclick="toggleRecording()" style="background:rgba(255,255,255,0.05)">🎤</button>
@@ -145,12 +148,20 @@
     let currentUser = localStorage.getItem("chat_user");
     let currentTarget = localStorage.getItem("chat_target") || "";
     let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
-    let currentReply = null;
     let isRec = false; let rec; let chunks = [];
 
-    if(!currentUser) window.location.href="login.html";
+    if(!currentUser) window.location.href="index.html";
 
-    // --- PROFILE & STATUS ---
+    // --- FITUR LOGOUT ---
+    function logout() {
+        if(confirm("Apakah Anda yakin ingin keluar?")) {
+            localStorage.removeItem("chat_user");
+            localStorage.removeItem("chat_target");
+            window.location.href = "https://chat-frontend-ten-eta.vercel.app";
+        }
+    }
+
+    // --- CORE LOGIC (Profil, Chat, VN, dll) ---
     async function loadMyProfile() {
         try {
             const res = await fetch(`${API}/user/${currentUser}`);
@@ -161,15 +172,6 @@
     }
     loadMyProfile();
 
-    function updateStatusUI(status) {
-        const dot = document.getElementById("statusDot");
-        const txt = document.getElementById("statusText");
-        dot.className = "status-dot " + (status === "online" ? "online-dot" : "offline-dot");
-        txt.innerText = status === "online" ? "Online" : "Offline";
-        txt.style.color = status === "online" ? "#22c55e" : "#94a3b8";
-    }
-
-    // --- SIDEBAR ---
     function toggleSidebar() { 
         document.getElementById("sidebar").classList.toggle("active"); 
         if(document.getElementById("sidebar").classList.contains("active")) renderHistory(); 
@@ -179,20 +181,15 @@
         const list = document.getElementById("historyList");
         list.innerHTML = "";
         for (const username of chatHistory) {
-            try {
-                const res = await fetch(`${API}/user/${username}`);
-                const data = await res.json();
-                const pp = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
-                list.innerHTML += `
-                    <div class="history-item" onclick="selectUser('${username}'); toggleSidebar();">
-                        <img src="${pp}" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--liquid-blue);">
-                        <div><div style="font-weight:600; font-size:14px;">@${username}</div><div style="font-size:10px; opacity:0.5;">Klik untuk chat</div></div>
-                    </div>`;
-            } catch(e){}
+            const res = await fetch(`${API}/user/${username}`);
+            const data = await res.json();
+            const pp = data?.profilePicture || `https://ui-avatars.com/api/?name=${username}`;
+            list.innerHTML += `<div class="history-item" onclick="selectUser('${username}'); toggleSidebar();">
+                <img src="${pp}" style="width:40px; height:40px; border-radius:50%; border:1px solid var(--liquid-blue);">
+                <div><div style="font-weight:600; font-size:14px;">@${username}</div><div style="font-size:10px; opacity:0.5;">Klik untuk chat</div></div>
+            </div>`;
         }
     }
-
-    function handleSearch(e) { if(e.key === "Enter") { selectUser(e.target.value); e.target.value=""; toggleSidebar(); } }
 
     async function selectUser(u) {
         if(u === currentUser || !u) return;
@@ -200,7 +197,6 @@
         localStorage.setItem("chat_target", u);
         chatHistory = [u, ...chatHistory.filter(n => n !== u)].slice(0, 10);
         localStorage.setItem("chat_history", JSON.stringify(chatHistory));
-        
         const res = await fetch(`${API}/user/${u}`);
         const data = await res.json();
         document.getElementById("targetLabel").innerText = "@" + u;
@@ -209,54 +205,30 @@
         loadHistory();
     }
 
-    // --- MESSAGES CORE ---
     async function loadHistory() {
         chat.innerHTML = "";
         const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
         const msgs = await res.json();
         msgs.forEach(createMessage);
-        chat.scrollTop = chat.scrollHeight;
     }
 
     function createMessage(data) {
-        if (document.getElementById(`row-${data._id}`)) return;
         const isMe = data.sender === currentUser;
         const row = document.createElement("div");
         row.className = `message-row ${isMe ? 'me' : 'other'}`;
-        row.id = `row-${data._id}`;
-
-        let contentHTML = data.type === "audio" 
-            ? `<audio controls src="${data.message}"></audio>` 
-            : `<span id="text-${data._id}">${data.message}</span>`;
-        
-        let replyHTML = data.replyTo ? `<div class="reply-quote" onclick="document.getElementById('row-${data.replyTo.id}')?.scrollIntoView({behavior:'smooth',block:'center'})"><b>@${data.replyTo.sender}</b><p>${data.replyTo.text}</p></div>` : "";
-        
-        row.innerHTML = `
-            <div class="bubble" onclick="toggleMenu('${data._id}')">
-                <div class="action-menu" id="menu-${data._id}">
-                    <button onclick="initReply('${data._id}','${data.sender}','${data.type==='audio'?'[VN]':data.message}')">Balas</button>
-                    ${isMe && data.type !== 'audio' ? `<button onclick="editMsg('${data._id}')">Edit</button>` : ''}
-                    ${isMe ? `<button onclick="deleteMsg('${data._id}')">Hapus</button>` : ''}
-                </div>
-                ${replyHTML} ${contentHTML}
-                <div class="meta">
-                    ${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                    ${isMe ? `<span id="tick-${data._id}" class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : ''}
-                </div>
-            </div>`;
+        let content = data.type === "audio" ? `<audio controls src="${data.message}"></audio>` : `<span>${data.message}</span>`;
+        row.innerHTML = `<div class="bubble">${content}<div class="meta">${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${isMe ? `<span class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : ''}</div></div>`;
         chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
-        if(!isMe && !data.read) socket.emit("read_message", { messageId: data._id, sender: data.sender });
     }
 
     function send() {
         const val = messageInput.value.trim();
         if(!val || !currentTarget) return;
-        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text", replyTo: currentReply });
-        messageInput.value = ""; cancelReply();
+        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text" });
+        messageInput.value = "";
     }
 
-    // --- FIX VOICE NOTE ---
     async function toggleRecording() {
         const btn = document.getElementById("micBtn");
         if (!isRec) {
@@ -266,65 +238,17 @@
                 rec.ondataavailable = e => chunks.push(e.data);
                 rec.onstop = () => {
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio", replyTo: currentReply });
-                    };
+                    reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio" });
                     reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
-                    stream.getTracks().forEach(t => t.stop());
                 };
                 rec.start(); isRec = true; btn.innerHTML = "⏹"; btn.style.background = "#ef4444";
             } catch(e) { alert("Mic ditolak"); }
-        } else {
-            rec.stop(); isRec = false; btn.innerHTML = "🎤"; btn.style.background = "rgba(255,255,255,0.05)";
-        }
+        } else { rec.stop(); isRec = false; btn.innerHTML = "🎤"; btn.style.background = "rgba(255,255,255,0.05)"; }
     }
 
-    // --- EDIT / DELETE / REPLY ---
-    window.toggleMenu = (id) => {
-        const m = document.getElementById(`menu-${id}`);
-        const wasOpen = m.style.display === "block";
-        document.querySelectorAll(".action-menu").forEach(el => el.style.display = "none");
-        m.style.display = wasOpen ? "none" : "block";
-    };
-
-    window.initReply = (id, sender, text) => {
-        currentReply = { id, sender, text };
-        document.getElementById("replyIndicator").style.display = "block";
-        document.getElementById("replyUser").innerText = "@" + sender;
-        document.getElementById("replyPreview").innerText = text;
-        messageInput.focus();
-    };
-    function cancelReply() { currentReply = null; document.getElementById("replyIndicator").style.display = "none"; }
-
-    window.editMsg = (id) => {
-        const n = prompt("Edit:", document.getElementById(`text-${id}`).innerText);
-        if(n) socket.emit("edit_message", { messageId: id, newMessage: n, receiver: currentTarget });
-    };
-    window.deleteMsg = (id) => { if(confirm("Hapus?")) socket.emit("delete_message", { messageId: id, receiver: currentTarget }); };
-
-    // --- SOCKET LISTENERS ---
     socket.on("receive_message", d => { if(d.sender === currentTarget || d.sender === currentUser) createMessage(d); });
-    socket.on("message_read", d => { const t = document.getElementById(`tick-${d.messageId}`); if(t) { t.innerText = "✓✓"; t.classList.add("read-tick"); } });
-    socket.on("message_edited", d => { const t = document.getElementById(`text-${d.messageId}`); if(t) t.innerText = d.newMessage; });
-    socket.on("message_deleted", id => { document.getElementById(`row-${id}`)?.remove(); });
-    socket.on("user_status", d => { if(d.username === currentTarget) updateStatusUI(d.status); });
     socket.on("connect", () => socket.emit("join", currentUser));
-
-    async function uploadPP(input) {
-        if(input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                await fetch(`${API}/update-pp`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ username: currentUser, profilePicture: e.target.result }) });
-                document.getElementById("myPP").src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    document.addEventListener("click", e => { if(!e.target.closest('.bubble')) document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none"); });
-    messageInput.addEventListener("keypress", e => { if(e.key === "Enter") send(); });
     if(currentTarget) selectUser(currentTarget);
 </script>
 </body>
-    </html>
-    
+</html>
