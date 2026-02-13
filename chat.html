@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XENZDOCHAT - ULTIMATE FINAL V2</title>
+    <title>XENZDOCHAT - ULTIMATE FINAL PRO</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -48,9 +48,10 @@
 
         .history-item { 
             display: flex; align-items: center; gap: 12px; padding: 12px;
-            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--liquid-blue);
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border);
             border-radius: 15px; cursor: pointer; transition: 0.3s; margin-bottom: 12px;
         }
+        .history-item:hover { background: rgba(37, 99, 235, 0.2); border-color: var(--liquid-blue); }
 
         /* --- CHAT AREA --- */
         .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
@@ -65,7 +66,6 @@
         .me .bubble { background: var(--primary-glass); border-bottom-right-radius: 4px; }
         .other .bubble { background: rgba(255, 255, 255, 0.07); border-bottom-left-radius: 4px; }
 
-        /* Reply Style */
         .reply-box { 
             background: rgba(0,0,0,0.2); border-left: 3px solid #38bdf8; 
             padding: 5px 10px; border-radius: 5px; margin-bottom: 5px; font-size: 12px; color: #cbd5e1;
@@ -75,13 +75,11 @@
             display: none; justify-content: space-between; align-items: center;
         }
 
-        /* Action Menu (Edit/Hapus) */
         .msg-menu {
             position: absolute; top: -35px; right: 0; background: #1e293b; 
             border-radius: 8px; display: none; overflow: hidden; border: 1px solid var(--glass-border); z-index: 5;
         }
         .msg-menu button { padding: 5px 10px; border: none; background: none; color: white; cursor: pointer; font-size: 11px; }
-        .msg-menu button:hover { background: var(--liquid-blue); }
 
         /* --- INPUT --- */
         .input-area { padding: 15px; background: rgba(2, 6, 23, 0.5); backdrop-filter: blur(25px); border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
@@ -91,6 +89,9 @@
         .meta { font-size: 10px; color: #94a3b8; margin-top: 4px; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
         .read-tick { color: #38bdf8; }
         audio { height: 35px; width: 180px; filter: invert(100%); }
+        
+        #searchInput { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 10px; color: white; outline: none; margin-top: 10px; }
+        #searchInput:focus { border-color: var(--liquid-blue); }
     </style>
 </head>
 <body>
@@ -98,11 +99,19 @@
 <div class="app">
     <div id="sidebar" class="sidebar">
         <div style="text-align:center;">
-            <img id="myPP" style="width:70px; height:70px; border-radius:50%; border:2px solid var(--liquid-blue); object-fit:cover;">
+            <div style="position:relative; display:inline-block;">
+                <img id="myPP" style="width:80px; height:80px; border-radius:50%; border:3px solid var(--liquid-blue); object-fit:cover; cursor:pointer;" onclick="document.getElementById('fileInput').click()">
+                <div style="position:absolute; bottom:0; right:0; background:var(--liquid-blue); border-radius:50%; width:24px; height:24px; font-size:12px; display:flex; align-items:center; justify-content:center; pointer-events:none;">📷</div>
+            </div>
+            <input type="file" id="fileInput" hidden accept="image/*" onchange="uploadPP(this)">
             <h3 id="uNameDisplay" style="margin-top:8px;"></h3>
         </div>
+
+        <input id="searchInput" placeholder="Cari username..." onkeypress="handleSearch(event)">
+        
         <div id="historyList"></div>
-        <button onclick="logout()" style="width:100%; padding:12px; background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">Logout</button>
+
+        <button onclick="logout()" style="width:100%; padding:12px; background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">🚪 Logout</button>
         <button onclick="toggleSidebar()" style="background:none; border:none; color:#64748b; margin-top:10px; cursor:pointer;">Tutup</button>
     </div>
 
@@ -148,41 +157,71 @@
 
     if(!currentUser) window.location.href="index.html";
 
-    // --- LOGIC REPLY, EDIT, DELETE ---
-    function showMenu(e, id, isMe, text) {
+    // --- FITUR GANTI PP ---
+    async function uploadPP(input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64 = e.target.result;
+            const res = await fetch(`${API}/update-pp`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: currentUser, image: base64 })
+            });
+            if (res.ok) {
+                document.getElementById("myPP").src = base64;
+                alert("Foto profil diperbarui!");
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    async function loadMyProfile() {
+        const res = await fetch(`${API}/user/${currentUser}`);
+        const data = await res.json();
+        document.getElementById("myPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${currentUser}`;
+        document.getElementById("uNameDisplay").innerText = "@" + currentUser;
+    }
+
+    // --- FITUR SEARCH ---
+    function handleSearch(e) {
+        if(e.key === "Enter") {
+            const u = e.target.value.trim();
+            if(u && u !== currentUser) {
+                selectUser(u);
+                e.target.value = "";
+                toggleSidebar();
+            }
+        }
+    }
+
+    // --- MESSAGE ACTIONS (REPLY, EDIT, DELETE) ---
+    function showMenu(e, id) {
         e.stopPropagation();
         document.querySelectorAll('.msg-menu').forEach(m => m.style.display = 'none');
-        const menu = document.getElementById('menu-' + id);
-        menu.style.display = 'flex';
+        document.getElementById('menu-' + id).style.display = 'flex';
     }
 
     function initReply(id, sender, text) {
         selectedReply = { id, sender, text };
         document.getElementById('replyPreview').style.display = 'flex';
         document.getElementById('replyTargetName').innerText = "Balas @" + sender;
-        document.getElementById('replyTargetText').innerText = text.substring(0, 40) + (text.length > 40 ? "..." : "");
+        document.getElementById('replyTargetText').innerText = text.substring(0, 40);
         messageInput.focus();
     }
 
-    function cancelReply() {
-        selectedReply = null;
-        document.getElementById('replyPreview').style.display = 'none';
+    function cancelReply() { selectedReply = null; document.getElementById('replyPreview').style.display = 'none'; }
+
+    function deleteMessage(id) {
+        if(confirm("Hapus pesan?")) socket.emit("delete_message", { messageId: id, receiver: currentTarget });
     }
 
-    async function deleteMessage(id) {
-        if(confirm("Hapus pesan ini?")) {
-            socket.emit("delete_message", { messageId: id, receiver: currentTarget });
-        }
-    }
-
-    async function editMessage(id, oldText) {
+    function editMessage(id, oldText) {
         const newText = prompt("Edit pesan:", oldText);
-        if(newText && newText !== oldText) {
-            socket.emit("edit_message", { messageId: id, newMessage: newText, receiver: currentTarget });
-        }
+        if(newText) socket.emit("edit_message", { messageId: id, newMessage: newText, receiver: currentTarget });
     }
 
-    // --- CORE MESSAGING ---
+    // --- CHAT CORE ---
     function createMessage(data) {
         const isMe = data.sender === currentUser;
         const row = document.createElement("div");
@@ -193,7 +232,7 @@
         let content = data.type === "audio" ? `<audio controls src="${data.message}"></audio>` : `<span id="text-${data._id}">${data.message}</span>`;
         
         row.innerHTML = `
-            <div class="bubble" onclick="showMenu(event, '${data._id}', ${isMe}, '${data.message}')">
+            <div class="bubble" onclick="showMenu(event, '${data._id}')">
                 <div class="msg-menu" id="menu-${data._id}">
                     <button onclick="initReply('${data._id}', '${data.sender}', '${data.type === 'audio' ? '[VN]' : data.message}')">Balas</button>
                     ${isMe && data.type !== 'audio' ? `<button onclick="editMessage('${data._id}', '${data.message}')">Edit</button>` : ''}
@@ -201,10 +240,7 @@
                 </div>
                 ${replyHTML}
                 ${content}
-                <div class="meta">
-                    ${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} 
-                    ${isMe ? `<span class="${data.read ? 'read-tick' : ''}" id="tick-${data._id}">${data.read ? '✓✓' : '✓'}</span>` : ''}
-                </div>
+                <div class="meta">${new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} ${isMe ? `<span class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : ''}</div>
             </div>`;
         chat.appendChild(row);
         chat.scrollTop = chat.scrollHeight;
@@ -213,38 +249,16 @@
     function send() {
         const val = messageInput.value.trim();
         if(!val || !currentTarget) return;
-        socket.emit("send_message", { 
-            sender: currentUser, 
-            receiver: currentTarget, 
-            message: val, 
-            type: "text",
-            replyTo: selectedReply 
-        });
-        messageInput.value = "";
-        cancelReply();
-    }
-
-    // --- SOCKET EVENTS ---
-    socket.on("message_deleted", id => document.getElementById("msg-" + id)?.remove());
-    socket.on("message_edited", d => {
-        const txt = document.getElementById("text-" + d.messageId);
-        if(txt) txt.innerText = d.newMessage;
-    });
-    socket.on("receive_message", d => {
-        if(d.sender === currentTarget || d.sender === currentUser) createMessage(d);
-    });
-
-    // --- OTHERS ---
-    function updateStatusUI(status) {
-        const dot = document.getElementById("statusDot");
-        const txt = document.getElementById("statusText");
-        if (status === "online") { dot.className = "status-dot online-dot"; txt.innerText = "Online"; txt.style.color = "#22c55e"; }
-        else { dot.className = "status-dot offline-dot"; txt.innerText = "Offline"; txt.style.color = "#94a3b8"; }
+        socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: val, type: "text", replyTo: selectedReply });
+        messageInput.value = ""; cancelReply();
     }
 
     async function selectUser(u) {
         currentTarget = u;
         localStorage.setItem("chat_target", u);
+        if(!chatHistory.includes(u)) chatHistory.unshift(u);
+        localStorage.setItem("chat_history", JSON.stringify(chatHistory.slice(0, 15)));
+        
         const res = await fetch(`${API}/user/${u}`);
         const data = await res.json();
         document.getElementById("targetLabel").innerText = "@" + u;
@@ -258,6 +272,13 @@
         const msgs = await res.json();
         chat.innerHTML = "";
         msgs.forEach(createMessage);
+    }
+
+    function updateStatusUI(status) {
+        const dot = document.getElementById("statusDot");
+        const txt = document.getElementById("statusText");
+        if (status === "online") { dot.className = "status-dot online-dot"; txt.innerText = "Online"; txt.style.color = "#22c55e"; }
+        else { dot.className = "status-dot offline-dot"; txt.innerText = "Offline"; txt.style.color = "#94a3b8"; }
     }
 
     async function toggleRecording() {
@@ -282,16 +303,25 @@
     async function renderHistory() {
         const list = document.getElementById("historyList");
         list.innerHTML = "";
-        chatHistory.forEach(u => {
-            list.innerHTML += `<div class="history-item" onclick="selectUser('${u}'); toggleSidebar();" style="padding:10px; margin-bottom:5px; border-radius:10px; background:rgba(255,255,255,0.05); cursor:pointer;">@${u}</div>`;
-        });
+        for (const u of chatHistory) {
+            const res = await fetch(`${API}/user/${u}`);
+            const data = await res.json();
+            list.innerHTML += `<div class="history-item" onclick="selectUser('${u}'); toggleSidebar();">
+                <img src="${data?.profilePicture || `https://ui-avatars.com/api/?name=${u}`}" style="width:35px; height:35px; border-radius:50%; object-fit:cover;">
+                <span style="font-size:14px; font-weight:600;">@${u}</span>
+            </div>`;
+        }
     }
 
     function logout() { localStorage.clear(); window.location.href = "https://chat-frontend-ten-eta.vercel.app"; }
-    function handleSearch(e) { if(e.key === "Enter") { selectUser(e.target.value); e.target.value=""; toggleSidebar(); } }
-
     window.onclick = () => document.querySelectorAll('.msg-menu').forEach(m => m.style.display = 'none');
+    socket.on("message_deleted", id => document.getElementById("msg-" + id)?.remove());
+    socket.on("message_edited", d => { if(document.getElementById("text-" + d.messageId)) document.getElementById("text-" + d.messageId).innerText = d.newMessage; });
+    socket.on("receive_message", d => { if(d.sender === currentTarget || d.sender === currentUser) createMessage(d); });
+    socket.on("user_status", data => { if(data.username === currentTarget) updateStatusUI(data.status); });
     socket.on("connect", () => socket.emit("join", currentUser));
+
+    loadMyProfile();
     if(currentTarget) selectUser(currentTarget);
 </script>
 </body>
