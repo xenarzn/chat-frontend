@@ -22,7 +22,7 @@
         .online { color: #22c55e !important; }
 
         /* Chat Area */
-        .chat-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
+        .chat-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; scroll-behavior: smooth; }
         .message-row { display: flex; flex-direction: column; max-width: 85%; position: relative; }
         .me { align-self: flex-end; align-items: flex-end; }
         .other { align-self: flex-start; }
@@ -31,9 +31,267 @@
         .me .bubble { background: #2563eb; border-bottom-right-radius: 4px; }
         .other .bubble { background: #334155; border-bottom-left-radius: 4px; }
 
-        /* Reply Quote in Bubble */
-        .reply-quote { background: rgba(0,0,0,0.2); border-left: 3px solid #38bdf8; padding: 5px 8px; border-radius: 4px; margin-bottom: 6px; font-size: 12px; }
-        .reply-quote b { color: #38bdf8; font-size: 11px; display: block; }
+        /* Reply Quote UI Sempurna */
+        .reply-quote { background: rgba(0, 0, 0, 0.25); border-left: 4px solid #38bdf8; padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 12px; cursor: pointer; }
+        .reply-quote b { color: #38bdf8; font-size: 11px; display: block; margin-bottom: 2px; }
+        .reply-quote p { opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e2e8f0; }
+
+        /* Action Menu */
+        .action-menu { position: absolute; top: -45px; right: 0; display: none; background: #0f172a; border: 1px solid #334155; border-radius: 8px; z-index: 50; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5); white-space: nowrap; }
+        .action-menu button { padding: 8px 12px; border: none; background: none; color: white; font-size: 11px; cursor: pointer; }
+        .action-menu button:hover { background: #2563eb; }
+
+        /* Input & Reply Indicator */
+        #replyIndicator { display: none; background: #0f172a; padding: 10px 15px; border-top: 1px solid #1e293b; align-items: center; justify-content: space-between; border-left: 4px solid #2563eb; }
+        .input-area { padding: 12px; display: flex; gap: 10px; background: #0f172a; align-items: center; }
+        #message { flex: 1; padding: 12px 16px; border-radius: 24px; border: none; background: #1e293b; color: white; outline: none; }
+        .btn { background: #2563eb; border: none; color: white; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .meta { font-size: 10px; margin-top: 4px; color: #94a3b8; display: flex; align-items: center; gap: 5px; }
+        .read-tick { color: #38bdf8; font-weight: bold; }
+        .edited-label { font-size: 9px; font-style: italic; opacity: 0.6; }
+        audio { height: 35px; width: 180px; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div id="sidebar" class="sidebar">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img id="myPP" onclick="document.getElementById('ppInput').click()" style="width:80px; height:80px; border-radius:50%; border:3px solid #2563eb; cursor:pointer; object-fit:cover;">
+            <input type="file" id="ppInput" hidden accept="image/*" onchange="uploadPP(this)">
+            <h3 id="uNameDisplay" style="margin-top:10px;"></h3>
+        </div>
+        <input type="text" class="search-box" placeholder="Cari teman..." onkeypress="handleSearch(event)">
+        <p style="font-size: 11px; color: #64748b; margin-bottom: 10px; font-weight: bold;">RIWAYAT CHAT</p>
+        <div id="historyList"></div>
+        <button onclick="toggleSidebar()" style="margin-top:20px; color:#ef4444; background:none; border:none; cursor:pointer; font-weight:bold;">Tutup Menu</button>
+    </div>
+
+    <div class="header">
+        <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">☰</button>
+        <img id="targetPP" class="avatar" src="https://ui-avatars.com/api/?name=User">
+        <div style="flex: 1;">
+            <div id="targetLabel" style="font-weight:bold; font-size:15px;">Pilih Chat</div>
+            <div id="targetStatus" class="status">Offline</div>
+        </div>
+    </div>
+
+    <div class="chat-area" id="chat"></div>
+
+    <div id="replyIndicator">
+        <div style="overflow: hidden;">
+            <small id="replyUser" style="color:#2563eb; font-weight:bold;"></small>
+            <div id="replyPreview" style="font-size:12px; opacity:0.7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color: white;"></div>
+        </div>
+        <button onclick="cancelReply()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 18px;">✕</button>
+    </div>
+
+    <div class="input-area">
+        <button id="micBtn" class="btn" onclick="toggleRecording()" style="background: #334155;">🎤</button>
+        <input id="message" placeholder="Ketik pesan..." autocomplete="off">
+        <button class="btn" onclick="send()">➤</button>
+    </div>
+</div>
+
+<script>
+    const API = "https://chat-backend-u4en.onrender.com";
+    const socket = io(API);
+    const chat = document.getElementById("chat");
+    const messageInput = document.getElementById("message");
+    
+    let currentUser = localStorage.getItem("chat_user");
+    let currentTarget = localStorage.getItem("chat_target") || "";
+    let chatHistory = JSON.parse(localStorage.getItem("chat_history") || "[]");
+    let isRec = false; let rec; let chunks = [];
+    let currentReply = null;
+
+    if(!currentUser) window.location.href="login.html";
+    document.getElementById("uNameDisplay").innerText = "@"+currentUser;
+
+    async function loadMyProfile() {
+        const res = await fetch(`${API}/user/${currentUser}`);
+        const data = await res.json();
+        document.getElementById("myPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${currentUser}`;
+    }
+    loadMyProfile();
+
+    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("active"); if(document.getElementById("sidebar").classList.contains("active")) renderHistory(); }
+    function renderHistory() {
+        const list = document.getElementById("historyList");
+        list.innerHTML = chatHistory.map(u => `<div onclick="selectUser('${u}')">@${u}</div>`).join("");
+    }
+    function handleSearch(e) { if(e.key === "Enter") { selectUser(e.target.value); e.target.value=""; toggleSidebar(); } }
+
+    async function selectUser(u) {
+        if(u === currentUser || !u) return;
+        currentTarget = u; localStorage.setItem("chat_target", u);
+        if(!chatHistory.includes(u)) { chatHistory.unshift(u); localStorage.setItem("chat_history", JSON.stringify(chatHistory)); }
+        
+        const res = await fetch(`${API}/user/${u}`);
+        const data = await res.json();
+        document.getElementById("targetLabel").innerText = "@"+u;
+        document.getElementById("targetPP").src = data?.profilePicture || `https://ui-avatars.com/api/?name=${u}`;
+        document.getElementById("targetStatus").innerText = data?.status === "online" ? "Online" : "Offline";
+        document.getElementById("targetStatus").className = "status " + (data?.status === "online" ? "online" : "");
+        loadHistory();
+    }
+
+    async function loadHistory() {
+        chat.innerHTML = "";
+        const res = await fetch(`${API}/messages/${currentUser}/${currentTarget}`);
+        const msgs = await res.json();
+        msgs.forEach(createMessage);
+    }
+
+    function createMessage(data) {
+        const isMe = data.sender === currentUser;
+        const row = document.createElement("div");
+        row.className = `message-row ${isMe ? 'me' : 'other'}`;
+        row.id = `row-${data._id}`;
+        
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.id = `bubble-${data._id}`;
+
+        // Perbaikan Sempurna Logika Reply Tampilan
+        if(data.replyTo && data.replyTo.text) {
+            const q = document.createElement("div");
+            q.className = "reply-quote";
+            q.onclick = () => {
+                const targetEl = document.getElementById(`row-${data.replyTo.id}`);
+                if(targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+            q.innerHTML = `<b>@${data.replyTo.sender}</b><p>${data.replyTo.text}</p>`;
+            bubble.appendChild(q);
+        }
+
+        const textSpan = document.createElement("span");
+        textSpan.id = `text-${data._id}`;
+        
+        if(data.type === "audio"){
+            const audio = document.createElement("audio");
+            audio.src = data.message; audio.controls = true;
+            bubble.appendChild(audio);
+        } else {
+            textSpan.innerText = data.message;
+            bubble.appendChild(textSpan);
+        }
+
+        const menu = document.createElement("div");
+        menu.className = "action-menu";
+        menu.id = `menu-${data._id}`;
+        
+        let menuHTML = `<button onclick="initReply('${data._id}', '${data.sender}', '${data.type==='audio'?'[Audio VN]':data.message}')">Balas</button>`;
+        if(isMe && data.type !== "audio") {
+            menuHTML += `<button onclick="editMsg('${data._id}')">Edit</button>`;
+            menuHTML += `<button onclick="deleteMsg('${data._id}')" style="color:#ef4444">Hapus</button>`;
+        }
+        menu.innerHTML = menuHTML;
+        bubble.appendChild(menu);
+
+        bubble.onclick = (e) => {
+            e.stopPropagation();
+            const isVis = menu.style.display === "block";
+            document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none");
+            menu.style.display = isVis ? "none" : "block";
+        };
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const time = new Date(data.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        let ticks = isMe ? `<span id="tick-${data._id}" class="${data.read ? 'read-tick' : ''}">${data.read ? '✓✓' : '✓'}</span>` : "";
+        
+        meta.innerHTML = `${time} <span id="ed-${data._id}" class="edited-label"></span> ${ticks}`;
+        
+        const wrap = document.createElement("div");
+        wrap.appendChild(bubble); wrap.appendChild(meta);
+        row.appendChild(wrap); chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
+
+        if(!isMe && !data.read) socket.emit("read_message", { messageId: data._id, sender: data.sender });
+    }
+
+    function send() {
+        const val = messageInput.value.trim();
+        if(!val || !currentTarget) return;
+        socket.emit("send_message", { 
+            sender: currentUser, 
+            receiver: currentTarget, 
+            message: val, 
+            type: "text",
+            replyTo: currentReply 
+        });
+        messageInput.value = "";
+        cancelReply();
+    }
+
+    window.initReply = (id, sender, text) => {
+        currentReply = { id, sender, text };
+        document.getElementById("replyIndicator").style.display = "flex";
+        document.getElementById("replyUser").innerText = "@" + sender;
+        document.getElementById("replyPreview").innerText = text;
+        messageInput.focus();
+    };
+
+    function cancelReply() { currentReply = null; document.getElementById("replyIndicator").style.display = "none"; }
+
+    window.editMsg = (id) => {
+        const old = document.getElementById(`text-${id}`).innerText;
+        const n = prompt("Edit pesan:", old);
+        if(n && n !== old) socket.emit("edit_message", { messageId: id, newMessage: n, receiver: currentTarget });
+    };
+
+    window.deleteMsg = (id) => { if(confirm("Hapus pesan ini?")) socket.emit("delete_message", { messageId: id, receiver: currentTarget }); };
+
+    socket.on("connect", () => socket.emit("join", currentUser));
+    socket.on("receive_message", d => { if(currentTarget === d.sender || currentTarget === d.receiver) createMessage(d); });
+    socket.on("message_read", d => { const t = document.getElementById(`tick-${d.messageId}`); if(t) { t.innerText = "✓✓"; t.classList.add("read-tick"); } });
+    socket.on("message_edited", d => {
+        const txt = document.getElementById(`text-${d.messageId}`);
+        if(txt) { txt.innerText = d.newMessage; const ed = document.getElementById(`ed-${d.messageId}`); if(ed) ed.innerText = "(diedit)"; }
+    });
+    socket.on("message_deleted", id => { const r = document.getElementById(`row-${id}`); if(r) r.remove(); });
+    
+    socket.on("user_status", d => { if(d.username === currentTarget) { document.getElementById("targetStatus").innerText = d.status === "online" ? "Online" : "Offline"; document.getElementById("targetStatus").className = "status " + (d.status === "online" ? "online" : ""); } });
+    socket.on("display_typing", d => { if(d.sender === currentTarget) document.getElementById("targetStatus").innerText = d.isTyping ? "Sedang mengetik..." : "Online"; });
+
+    messageInput.oninput = () => { socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: true }); clearTimeout(window.tT); window.tT = setTimeout(() => socket.emit("typing", { sender: currentUser, receiver: currentTarget, isTyping: false }), 2000); };
+
+    async function toggleRecording() {
+        if (!isRec) {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            rec = new MediaRecorder(stream);
+            chunks = [];
+            rec.ondataavailable = e => chunks.push(e.data);
+            rec.onstop = () => {
+                const reader = new FileReader();
+                reader.onloadend = () => socket.emit("send_message", { sender: currentUser, receiver: currentTarget, message: reader.result, type: "audio", replyTo: currentReply });
+                reader.readAsDataURL(new Blob(chunks, { type: 'audio/webm' }));
+                stream.getTracks().forEach(track => track.stop()); // FIX MIC OFF
+                cancelReply();
+            };
+            rec.start(); isRec = true; document.getElementById("micBtn").style.background = "#ef4444";
+        } else { rec.stop(); isRec = false; document.getElementById("micBtn").style.background = "#334155"; }
+    }
+
+    async function uploadPP(input) {
+        if(input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                await fetch(`${API}/update-pp`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ username: currentUser, profilePicture: e.target.result }) });
+                document.getElementById("myPP").src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    document.addEventListener("click", () => document.querySelectorAll(".action-menu").forEach(m => m.style.display = "none"));
+    messageInput.addEventListener("keypress", (e) => { if(e.key === "Enter") send(); });
+    if(currentTarget) selectUser(currentTarget);
+</script>
+</body>
+</html>
         .reply-quote p { opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 
         /* Action Menu */
